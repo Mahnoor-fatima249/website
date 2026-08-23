@@ -43,7 +43,7 @@ const state = {
   user: null,
   view: 'overview',
   leads: [], page: 1, pageSize: 50,
-  tracker: [],
+  tracker: [], trackMineOnly: true,
   editingTrackId: null, confirmAction: null
 };
 
@@ -310,14 +310,25 @@ async function loadTracker(silent) {
   }
 }
 
+function scopedTracker() {
+  if (!state.trackMineOnly) return state.tracker;
+  const me = String((state.user && state.user.name) || '').trim().toLowerCase();
+  return state.tracker.filter(t => {
+    const ab = String(t['Added By'] || '').trim().toLowerCase();
+    return !ab || ab === me;
+  });
+}
+
 function renderTrackStats() {
-  const total = state.tracker.length;
-  const emailed = state.tracker.filter(t => t.Emailed === 'Yes').length;
-  const followed = state.tracker.filter(t => t.Followed === 'Yes').length;
-  const connSent = state.tracker.filter(t => t['Connection Sent'] === 'Yes').length;
-  const accepted = state.tracker.filter(t => t.Accepted === 'Yes').length;
+  const mine = scopedTracker();
+  const total = mine.length;
+  const emailed = mine.filter(t => t.Emailed === 'Yes').length;
+  const followed = mine.filter(t => t.Followed === 'Yes').length;
+  const connSent = mine.filter(t => t['Connection Sent'] === 'Yes').length;
+  const accepted = mine.filter(t => t.Accepted === 'Yes').length;
+  const teamTotal = state.tracker.length;
   $('trackStats').innerHTML = `
-    <div class="stat-card brand"><div class="stat-num">${total}</div><div class="stat-label">Total Entries</div></div>
+    <div class="stat-card brand"><div class="stat-num">${total}</div><div class="stat-label">${state.trackMineOnly ? 'Aapki Entries' : 'Total Entries'}</div><div class="stat-sub">${state.trackMineOnly ? 'Team total: ' + teamTotal : 'Sab members mila kar'}</div></div>
     <div class="stat-card ok"><div class="stat-num">${connSent}</div><div class="stat-label">Connections Sent</div></div>
     <div class="stat-card ok"><div class="stat-num">${accepted}</div><div class="stat-label">Accepted</div></div>
     <div class="stat-card violet"><div class="stat-num">${followed}</div><div class="stat-label">Followed</div></div>
@@ -326,9 +337,10 @@ function renderTrackStats() {
 }
 
 function filteredTracker() {
+  const base = scopedTracker();
   const q = $('trackSearch').value.trim().toLowerCase();
-  if (!q) return state.tracker;
-  return state.tracker.filter(t =>
+  if (!q) return base;
+  return base.filter(t =>
     ['Name', 'Email', 'LinkedIn', 'Notes', 'SCR', 'Added By'].some(k => String(t[k]).toLowerCase().includes(q)));
 }
 
@@ -359,6 +371,13 @@ function renderTrackTable() {
 }
 
 $('trackSearch').addEventListener('input', renderTrackTable);
+
+$('trackScopeBtn').onclick = () => {
+  state.trackMineOnly = !state.trackMineOnly;
+  $('trackScopeBtn').textContent = state.trackMineOnly ? 'Sab Dikhao' : 'Sirf Meri';
+  renderTrackStats();
+  renderTrackTable();
+};
 
 $('trackBody').addEventListener('click', async e => {
   const tr = e.target.closest('tr[data-id]');

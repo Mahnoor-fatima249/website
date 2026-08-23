@@ -348,11 +348,20 @@ app.post('/api/tracker', requireLogin, async (req, res) => {
   }
 });
 
+function canTouchEntry(entry, req) {
+  const ab = String(entry['Added By'] || '').trim().toLowerCase();
+  return !ab || ab === String((req.session.user && req.session.user.name) || '').trim().toLowerCase();
+}
+
 app.put('/api/tracker/:id', requireLogin, async (req, res) => {
   try {
+    const list = await store.trackerList();
+    const entry = list.find(x => String(x.id) === String(req.params.id));
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+    if (!canTouchEntry(entry, req)) return res.status(403).json({ error: 'Ye entry aapki nahi hai — sirf apni entries edit kar sakte hain' });
     const patch = trackerFields(req.body);
-    const entry = await store.trackerUpdate(req.params.id, patch);
-    res.json({ ok: true, entry });
+    const updated = await store.trackerUpdate(req.params.id, patch);
+    res.json({ ok: true, entry: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -360,6 +369,10 @@ app.put('/api/tracker/:id', requireLogin, async (req, res) => {
 
 app.delete('/api/tracker/:id', requireLogin, async (req, res) => {
   try {
+    const list = await store.trackerList();
+    const entry = list.find(x => String(x.id) === String(req.params.id));
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+    if (!canTouchEntry(entry, req)) return res.status(403).json({ error: 'Ye entry aapki nahi hai — sirf apni entries delete kar sakte hain' });
     await store.trackerDelete(req.params.id);
     res.json({ ok: true });
   } catch (err) {
