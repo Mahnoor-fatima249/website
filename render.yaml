@@ -12,11 +12,11 @@ services:
       - key: SHEET_ID
         sync: false
       - key: SCRAPE_TABS
-        value: nexe-agent day time august,nexe-agent night time august
+        value: Sheet1,nexeragent 2026-08-15,nexe-agent day time august,nexe-agent night time august
       - key: TRACKER_TAB
         value: LinkedIn Tracker
       - key: MAX_USERS
-        value: "4"
+        value: "5"
       - key: GOOGLE_CREDENTIALS_B64
         sync: false
       - key: SESSION_SECRET

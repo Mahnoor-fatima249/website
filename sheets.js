@@ -100,7 +100,7 @@ function shiftLabel(title) {
   const t = String(title).toLowerCase();
   if (t.includes('night')) return 'Night';
   if (t.includes('day')) return 'Day';
-  return title;
+  return 'Other';
 }
 
 /* ---------- SCRAPE TABS (READ-ONLY) ---------- */
