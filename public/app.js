@@ -700,10 +700,19 @@ async function capturePng(filename) {
   document.body.appendChild(stage);
   try {
     const canvas = await html2canvas(stage.firstElementChild, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    const a = document.createElement('a');
-    a.download = filename;
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+    await new Promise(resolve => {
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        resolve();
+      }, 'image/png');
+    });
     toast('PNG download ho gayi ✓', 'ok');
   } catch (err) {
     toast('PNG fail: ' + err.message, 'err');
