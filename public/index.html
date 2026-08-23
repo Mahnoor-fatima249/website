@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Manager</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ================= AUTH VIEW ================= -->
+<div id="authView" class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand brand-lg"><span class="brand-dot"></span> Lead<span>Manager</span></div>
+    <p class="auth-sub">Lead tracker — live connected to Google Sheets (read-only)</p>
+
+    <div class="tabs">
+      <button id="tabLogin" class="tab active">Log In</button>
+      <button id="tabRegister" class="tab">Register</button>
+    </div>
+
+    <form id="loginForm" class="auth-form">
+      <label>Username
+        <input type="text" id="loginUser" placeholder="Your username" autocomplete="username" required>
+      </label>
+      <label>Password
+        <input type="password" id="loginPass" placeholder="Your password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Log In</button>
+      <p id="loginMsg" class="form-msg error"></p>
+    </form>
+
+    <form id="registerForm" class="auth-form hidden">
+      <p id="slotsInfo" class="slots-info"></p>
+      <label>Username
+        <input type="text" id="regUser" placeholder="e.g. Ahmed" autocomplete="off" required>
+      </label>
+      <label>Create a password
+        <input type="password" id="regPass" placeholder="At least 4 characters" autocomplete="new-password" required>
+      </label>
+      <label>Repeat password
+        <input type="password" id="regPass2" placeholder="Confirm password" autocomplete="new-password" required>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+      <p id="registerMsg" class="form-msg error"></p>
+    </form>
+
+    <p class="auth-note">Only the first 4 people can register. After that, registration closes.</p>
+  </div>
+</div>
+
+<!-- ================= APP VIEW ================= -->
+<div id="appView" class="hidden">
+
+  <header class="topbar">
+    <div class="top-left">
+      <div class="brand"><span class="brand-dot"></span> Lead<span>Manager</span></div>
+      <span class="live-badge" id="liveBadge" title="Auto-refreshes every 30 seconds"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <nav class="nav">
+      <button id="navOverview" class="nav-btn active">Overview</button>
+      <button id="navLeads" class="nav-btn">Leads</button>
+      <button id="navLinkedin" class="nav-btn">LinkedIn</button>
+      <button id="navReport" class="nav-btn">Report</button>
+    </nav>
+    <div class="user-chip">
+      <span id="lastSync" class="last-sync"></span>
+      <span id="userName" class="user-name"></span>
+      <button id="logoutBtn" class="btn btn-top-ghost btn-sm">Logout</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- ========== OVERVIEW ========== -->
+    <section id="overviewView">
+      <div class="view-head no-print">
+        <h2>Sheet Overview <span class="readonly-badge" title="This website never changes your sheet">Read-only</span></h2>
+        <button id="statsRefresh" class="btn btn-ghost btn-sm">Refresh</button>
+      </div>
+
+      <div id="dateRange" class="range-chip hidden no-print"></div>
+
+      <div class="banner hidden" id="modeBanner"></div>
+
+      <div class="stats-grid" id="overviewStats"></div>
+
+      <div class="two-col">
+        <div class="card pad-card">
+          <h3 class="sec-title">Shift Breakdown</h3>
+          <div id="shiftChips" class="chips"></div>
+        </div>
+        <div class="card pad-card">
+          <h3 class="sec-title">Top Categories</h3>
+          <div id="categoryChips" class="chips"></div>
+        </div>
+      </div>
+
+      <div class="card pad-card" style="margin-top:16px">
+        <h3 class="sec-title">Duplicate Emails <span class="cell-muted" style="font-weight:400">(same email appears in 2+ leads)</span></h3>
+        <table class="leads-table dup-table">
+          <thead><tr><th>Email</th><th>Times</th><th>Names</th><th>Rows</th></tr></thead>
+          <tbody id="dupBody"></tbody>
+        </table>
+        <div id="dupEmpty" class="empty hidden"><b>No duplicate emails found</b></div>
+      </div>
+    </section>
+
+    <!-- ========== LEADS (READ ONLY) ========== -->
+    <section id="leadsView" class="hidden">
+      <div class="view-head no-print">
+        <h2>All Leads <span class="readonly-badge">View only — nothing here can change the sheet</span></h2>
+        <button id="leadsRefresh" class="btn btn-ghost btn-sm">Refresh</button>
+      </div>
+
+      <div class="toolbar no-print">
+        <input type="search" id="leadSearch" class="search" placeholder="Search name, email, category...">
+        <select id="statusFilter" class="select"><option value="">Status: All</option></select>
+        <select id="shiftFilter" class="select">
+          <option value="">Shift: All</option>
+          <option value="Day">Day Time</option>
+          <option value="Night">Night Time</option>
+        </select>
+        <span id="leadCountInfo" class="cell-muted" style="font-size:13px"></span>
+      </div>
+
+      <div class="card table-card">
+        <table class="leads-table">
+          <thead>
+            <tr><th>#</th><th>Business</th><th>Email</th><th>Phone</th><th>LinkedIn</th><th>Shift</th><th>Status</th><th>Category</th><th>Date</th></tr>
+          </thead>
+          <tbody id="leadsBody"></tbody>
+        </table>
+        <div id="leadsEmpty" class="empty hidden"><b>No leads found</b></div>
+      </div>
+
+      <div class="pagination no-print">
+        <button id="pgPrev" class="btn btn-ghost btn-sm">&larr; Previous</button>
+        <span id="pgInfo" class="cell-muted"></span>
+        <button id="pgNext" class="btn btn-ghost btn-sm">Next &rarr;</button>
+      </div>
+    </section>
+
+    <!-- ========== LINKEDIN TRACKER ========== -->
+    <section id="linkedinView" class="hidden">
+      <div class="view-head no-print">
+        <h2>LinkedIn Tracker <span class="cell-muted" style="font-size:13px;font-weight:400">— manual entries with SCR scores</span></h2>
+        <button id="addTrackBtn" class="btn btn-primary">+ Add LinkedIn Lead</button>
+      </div>
+
+      <div class="stats-grid" id="trackStats"></div>
+
+      <div class="toolbar no-print">
+        <input type="search" id="trackSearch" class="search" placeholder="Search name, linkedin, notes...">
+        <span id="trackCountInfo" class="cell-muted" style="font-size:13px"></span>
+      </div>
+
+      <div class="card table-card">
+        <table class="leads-table">
+          <thead>
+            <tr><th>#</th><th>Name</th><th>Email</th><th>LinkedIn</th><th>SCR</th><th>Followed</th><th>Emailed</th><th>Conn Sent</th><th>Accepted</th><th>Notes</th><th>Added By</th><th>Date</th><th></th></tr>
+          </thead>
+          <tbody id="trackBody"></tbody>
+        </table>
+        <div id="trackEmpty" class="empty hidden"><b>No entries yet</b><p>Click "+ Add LinkedIn Lead" to start tracking.</p></div>
+      </div>
+    </section>
+
+    <!-- ========== REPORT ========== -->
+    <section id="reportView" class="hidden">
+      <div class="view-head no-print">
+        <h2>Work Report</h2>
+        <div>
+          <button id="reportRefresh" class="btn btn-ghost">Refresh</button>
+          <button id="printBtn" class="btn btn-primary">Print / Save PDF</button>
+        </div>
+      </div>
+
+      <div class="card report-card">
+        <div class="rp-head">
+          <div class="rp-weekly">Weekly Report</div>
+          <div class="rp-brand">Nexe Agent</div>
+          <div class="rp-range" id="reportMeta"></div>
+        </div>
+
+        <div class="stats-grid rp-stats" id="rpStats"></div>
+
+        <p class="rp-summary" id="rpSummary"></p>
+
+        <h3 class="sec-title">Team Performance</h3>
+        <table class="leads-table">
+          <thead><tr><th>User</th><th>Entries Added</th><th>Emailed</th><th>Followed</th></tr></thead>
+          <tbody id="perUserBody"></tbody>
+        </table>
+        <div class="empty hidden" id="perUserEmpty" style="padding:24px">No tracking data yet</div>
+
+        <h3 class="sec-title">Progress</h3>
+        <div id="progressBars"></div>
+      </div>
+
+      <div class="card pad-card no-print" style="margin-top:16px">
+        <h3 class="sec-title" style="margin-top:0">Weekly Breakdown
+          <span class="cell-muted" style="font-size:12.5px;font-weight:400">— har week apni scraped date ke hisaab se; purana week khud archive ho jata hai</span>
+        </h3>
+        <table class="leads-table weeks-table">
+          <thead>
+            <tr><th>Week</th><th>Total Leads</th><th>Sent Emails</th><th>Pending</th><th>Duplicate Emails</th><th>LinkedIn Added</th><th></th></tr>
+          </thead>
+          <tbody id="weeksBody"></tbody>
+        </table>
+        <div class="empty hidden" id="weeksEmpty" style="padding:24px">No scraped dates found in the sheet yet</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ TRACKER MODAL ============ -->
+<div id="trackModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="trackModalTitle">New LinkedIn Lead</h3>
+      <button class="icon-btn" data-close>&times;</button>
+    </div>
+    <form id="trackForm" class="modal-body">
+      <div class="grid2">
+        <label>Name / Business<input type="text" id="tName" placeholder="Name or business"></label>
+        <label>Email<input type="email" id="tEmail" placeholder="email@example.com"></label>
+        <label>LinkedIn URL<input type="url" id="tLinkedin" placeholder="https://linkedin.com/in/..."></label>
+        <label>SCR Score<input type="text" id="tScr" placeholder="e.g. 85"></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="tFollowed"> Followed on LinkedIn</label>
+          <label class="check"><input type="checkbox" id="tEmailed"> Email sent</label>
+          <label class="check"><input type="checkbox" id="tConn"> Connection sent (kis ko baja)</label>
+          <label class="check"><input type="checkbox" id="tAccepted"> Connection accepted</label>
+        </div>
+      </div>
+      <label>Notes<textarea id="tNotes" rows="2" placeholder="Anything important..."></textarea></label>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+      <p id="trackMsg" class="form-msg error"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============ CONFIRM MODAL ============ -->
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-body center">
+      <p id="confirmText" style="font-weight:600"></p>
+      <div class="modal-foot">
+        <button id="confirmNo" class="btn btn-ghost" data-close>Cancel</button>
+        <button id="confirmYes" class="btn btn-danger">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRINT AREA (screen pe hidden, print me sirf yehi aata hai) ============ -->
+<div id="printArea"></div>
+
+<div id="toastWrap"></div>
+<script src="/app.js"></script>
+</body>
+</html>

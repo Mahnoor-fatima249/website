@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: website
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /ping
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SHEET_ID
+        sync: false
+      - key: SCRAPE_TABS
+        value: nexe-agent day time august,nexe-agent night time august
+      - key: TRACKER_TAB
+        value: LinkedIn Tracker
+      - key: MAX_USERS
+        value: "4"
+      - key: GOOGLE_CREDENTIALS_B64
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
