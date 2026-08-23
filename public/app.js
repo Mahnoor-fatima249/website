@@ -201,7 +201,7 @@ async function loadStats(silent) {
       <div class="stat-card"><div class="stat-num">${s.missingEmail.toLocaleString()}</div><div class="stat-label">Missing Email</div></div>`;
     (s.shiftCounts || []).forEach(sc => {
       const cls = sc.name.toLowerCase() === 'day' ? 'ok' : sc.name.toLowerCase() === 'night' ? 'violet' : '';
-      cards += `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(sc.name)} Time Leads</div></div>`;
+      cards += `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(sc.name)} Time Leads</div><div class="stat-sub">✅ ${sc.sent || 0} sent</div></div>`;
     });
     $('overviewStats').innerHTML = cards;
 

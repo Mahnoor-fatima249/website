@@ -278,7 +278,9 @@ app.get('/api/stats', requireLogin, async (req, res) => {
       statusCounts[s] = (statusCounts[s] || 0) + 1;
       if (l.Category) categoryCounts[l.Category] = (categoryCounts[l.Category] || 0) + 1;
       const sh = l.Shift || 'Other';
-      shiftCounts[sh] = (shiftCounts[sh] || 0) + 1;
+      if (!shiftCounts[sh]) shiftCounts[sh] = { count: 0, sent: 0 };
+      shiftCounts[sh].count++;
+      if (isSentRow(l)) shiftCounts[sh].sent++;
     }
 
     const topCategories = Object.entries(categoryCounts)
@@ -300,7 +302,9 @@ app.get('/api/stats', requireLogin, async (req, res) => {
       statusCounts: Object.entries(statusCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count),
-      shiftCounts: Object.entries(shiftCounts).map(([name, count]) => ({ name, count })),
+      shiftCounts: Object.entries(shiftCounts)
+        .map(([name, s]) => ({ name, count: s.count, sent: s.sent }))
+        .sort((a, b) => b.count - a.count),
       tabs: store.getTabs ? store.getTabs() : [],
       topCategories,
       dupGroups: dupGroups.slice(0, 100),
