@@ -461,11 +461,6 @@ $('trackForm').onsubmit = async e => {
     $('trackMsg').textContent = 'Name or LinkedIn URL — at least one is required';
     return;
   }
-  if (!confirm(state.editingTrackId
-    ? 'Are you sure you want to update this entry?'
-    : 'Are you sure you want to save this entry?')) {
-    return;
-  }
   try {
     if (state.editingTrackId) {
       await api(`/api/tracker/${state.editingTrackId}`, { method: 'PUT', body });
