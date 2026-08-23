@@ -49,6 +49,7 @@ async function trackerAdd(dataIn) {
     Emailed: dataIn.Emailed || 'No',
     'Connection Sent': dataIn['Connection Sent'] || 'No',
     Accepted: dataIn.Accepted || 'No',
+    Bounced: dataIn.Bounced || 'No',
     Notes: dataIn.Notes || '',
     'Added By': dataIn['Added By'] || '',
     Date: now

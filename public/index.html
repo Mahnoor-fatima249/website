@@ -85,6 +85,20 @@
 
       <div class="stats-grid" id="overviewStats"></div>
 
+      <div class="card pad-card no-print" style="margin-top:16px">
+        <h3 class="sec-title">📅 Date Range — Kitni Leads Kis Din</h3>
+        <div class="toolbar">
+          <label style="font-size:13px">From <input type="date" id="rngFrom" class="select"></label>
+          <label style="font-size:13px">To <input type="date" id="rngTo" class="select"></label>
+          <button id="rngGo" class="btn btn-primary btn-sm">Dikhao</button>
+          <button id="rng7" class="btn btn-ghost btn-sm">Pichle 7 Din</button>
+          <button id="rngWeek" class="btn btn-ghost btn-sm">Ye Week</button>
+          <button id="rngMonth" class="btn btn-ghost btn-sm">Ye Mahina</button>
+          <button id="rngClear" class="btn btn-ghost btn-sm">Clear</button>
+        </div>
+        <div id="rangeResult"></div>
+      </div>
+
       <div class="two-col">
         <div class="card pad-card">
           <h3 class="sec-title">Shift Breakdown</h3>
@@ -118,8 +132,6 @@
         <select id="statusFilter" class="select"><option value="">Status: All</option></select>
         <select id="shiftFilter" class="select">
           <option value="">Shift: All</option>
-          <option value="Day">Day Time</option>
-          <option value="Night">Night Time</option>
         </select>
         <span id="leadCountInfo" class="cell-muted" style="font-size:13px"></span>
       </div>
@@ -159,7 +171,7 @@
       <div class="card table-card">
         <table class="leads-table">
           <thead>
-            <tr><th>#</th><th>Name</th><th>Email</th><th>LinkedIn</th><th>SCR</th><th>Followed</th><th>Emailed</th><th>Conn Sent</th><th>Accepted</th><th>Notes</th><th>Added By</th><th>Date</th><th></th></tr>
+            <tr><th>#</th><th>Name</th><th>Email</th><th>LinkedIn</th><th>SCR</th><th>Followed</th><th>Emailed</th><th>Conn Sent</th><th>Accepted</th><th>Bounced</th><th>Notes</th><th>Added By</th><th>Date</th><th></th></tr>
           </thead>
           <tbody id="trackBody"></tbody>
         </table>
@@ -174,6 +186,7 @@
         <div>
           <button id="reportRefresh" class="btn btn-ghost">Refresh</button>
           <button id="printBtn" class="btn btn-primary">Print / Save PDF</button>
+<button id="pngBtn" class="btn btn-ghost">Download PNG</button>
         </div>
       </div>
 
@@ -232,8 +245,9 @@
         <div class="checks">
           <label class="check"><input type="checkbox" id="tFollowed"> Followed on LinkedIn</label>
           <label class="check"><input type="checkbox" id="tEmailed"> Email sent</label>
-          <label class="check"><input type="checkbox" id="tConn"> Connection sent (kis ko baja)</label>
-          <label class="check"><input type="checkbox" id="tAccepted"> Connection accepted</label>
+<label class="check"><input type="checkbox" id="tConn"> Connection sent (kis ko baja)</label>
+<label class="check"><input type="checkbox" id="tAccepted"> Connection accepted</label>
+<label class="check"><input type="checkbox" id="tBounced"> Email bounced (wapas aya)</label>
         </div>
       </div>
       <label>Notes<textarea id="tNotes" rows="2" placeholder="Anything important..."></textarea></label>
@@ -263,6 +277,7 @@
 <div id="printArea"></div>
 
 <div id="toastWrap"></div>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

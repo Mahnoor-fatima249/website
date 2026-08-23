@@ -200,8 +200,10 @@ async function loadStats(silent) {
       <div class="stat-card"><div class="stat-num">${s.dupGroupCount.toLocaleString()}</div><div class="stat-label">Duplicated Email Types</div></div>
       <div class="stat-card"><div class="stat-num">${s.missingEmail.toLocaleString()}</div><div class="stat-label">Missing Email</div></div>`;
     (s.shiftCounts || []).forEach(sc => {
-      const cls = sc.name.toLowerCase() === 'day' ? 'ok' : sc.name.toLowerCase() === 'night' ? 'violet' : '';
-      cards += `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(sc.name)} Time Leads</div><div class="stat-sub">✅ ${sc.sent || 0} sent</div></div>`;
+      const low = sc.name.toLowerCase();
+      const cls = low === 'day' ? 'ok' : low === 'night' ? 'violet' : 'brand';
+      const lbl = (low === 'day' || low === 'night') ? sc.name + ' Time Leads' : sc.name + ' Leads';
+      cards += `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(lbl)}</div><div class="stat-sub">✅ ${sc.sent || 0} sent</div></div>`;
     });
     $('overviewStats').innerHTML = cards;
 
@@ -230,12 +232,77 @@ async function loadStats(silent) {
 }
 $('statsRefresh').onclick = () => { loadStats(); loadLeads(); };
 
+/* ---------- SHIFT FILTER (dynamic — har tab ka apna option) ---------- */
+function buildShiftFilter() {
+  const sel = $('shiftFilter');
+  const cur = sel.value;
+  const names = [...new Set(state.leads.map(l => l.Shift || 'Other'))];
+  sel.innerHTML = '<option value="">Shift: All</option>' + names.map(n => {
+    const low = String(n).toLowerCase();
+    const lbl = (low === 'day' || low === 'night') ? n + ' Time' : n;
+    return `<option value="${esc(n)}">${esc(lbl)}</option>`;
+  }).join('');
+  sel.value = names.includes(cur) ? cur : '';
+}
+
+/* ---------- DATE RANGE CALENDAR ---------- */
+const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+async function loadRange(from, to) {
+  try {
+    const r = await api(`/api/range?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    $('rangeResult').innerHTML = `
+      <div class="stats-grid" style="margin-top:12px">
+        <div class="stat-card brand"><div class="stat-num">${r.total.toLocaleString()}</div><div class="stat-label">Leads (${esc(from)} → ${esc(to)})</div></div>
+        <div class="stat-card ok"><div class="stat-num">${r.sent.toLocaleString()}</div><div class="stat-label">✅ Sent</div></div>
+        <div class="stat-card warn"><div class="stat-num">${r.notSent.toLocaleString()}</div><div class="stat-label">❌ Not sent</div></div>
+      </div>
+      ${(r.shifts || []).length ? '<div class="chips" style="margin:10px 0">' + r.shifts.map(x => `<span class="chip">${esc(x.name)}: <b>${x.count}</b> • ✅ ${x.sent} sent</span>`).join('') + '</div>' : ''}
+      ${(r.days || []).length ? `
+      <table class="leads-table dup-table" style="margin-top:10px">
+        <thead><tr><th>Din (Date)</th><th>Leads</th><th>Sent</th></tr></thead>
+        <tbody>${r.days.map(d => `<tr><td>${esc(d.date)}</td><td><b>${d.total}</b></td><td>✅ ${d.sent}</td></tr>`).join('')}</tbody>
+      </table>` : '<p class="cell-muted" style="margin-top:10px">Is range me koi dated lead nahi mili.</p>'}`;
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+$('rngGo').onclick = () => {
+  const f = $('rngFrom').value, t = $('rngTo').value;
+  if (!f || !t) { toast('Dono dates choose karo', 'err'); return; }
+  loadRange(f, t);
+};
+$('rng7').onclick = () => {
+  const to = new Date(), from = new Date();
+  from.setDate(from.getDate() - 6);
+  $('rngFrom').value = isoOf(from); $('rngTo').value = isoOf(to);
+  loadRange(isoOf(from), isoOf(to));
+};
+$('rngWeek').onclick = () => {
+  const now = new Date();
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  $('rngFrom').value = isoOf(mon); $('rngTo').value = isoOf(now);
+  loadRange(isoOf(mon), isoOf(now));
+};
+$('rngMonth').onclick = () => {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  $('rngFrom').value = isoOf(first); $('rngTo').value = isoOf(now);
+  loadRange(isoOf(first), isoOf(now));
+};
+$('rngClear').onclick = () => {
+  $('rngFrom').value = ''; $('rngTo').value = ''; $('rangeResult').innerHTML = '';
+};
+
 /* ============ LEADS (READ ONLY + PAGINATION) ============ */
 async function loadLeads(silent) {
   try {
     const r = await api('/api/scraped');
     state.leads = r.leads || [];
     buildStatusFilter();
+    buildShiftFilter();
     renderLeads();
     markSync();
   } catch (err) {
@@ -365,6 +432,7 @@ function renderTrackTable() {
       <td><span class="badge ${t.Emailed === 'Yes' ? 'yes' : 'no'} toggle" data-field="Emailed">${t.Emailed === 'Yes' ? 'Sent ✓' : 'Not sent'}</span></td>
       <td><span class="badge ${t['Connection Sent'] === 'Yes' ? 'yes' : 'no'} toggle" data-field="Connection Sent">${t['Connection Sent'] === 'Yes' ? 'Sent ✓' : 'Not yet'}</span></td>
       <td><span class="badge ${t.Accepted === 'Yes' ? 'yes' : 'no'} toggle" data-field="Accepted">${t.Accepted === 'Yes' ? 'Accepted ✓' : 'Pending'}</span></td>
+      <td><span class="badge ${t.Bounced === 'Yes' ? 'warnb' : 'no'} toggle" data-field="Bounced">${t.Bounced === 'Yes' ? 'Bounced ⚠' : 'OK'}</span></td>
       <td class="cell-muted" style="max-width:220px">${esc(t.Notes)}</td>
       <td>${esc(t['Added By'])}</td>
       <td class="cell-muted">${fmtDate(t.Date)}</td>
@@ -444,6 +512,7 @@ function openTrackModal(id) {
   $('tEmailed').checked = !!(t && t.Emailed === 'Yes');
   $('tConn').checked = !!(t && t['Connection Sent'] === 'Yes');
   $('tAccepted').checked = !!(t && t.Accepted === 'Yes');
+  $('tBounced').checked = !!(t && t.Bounced === 'Yes');
   openModal('trackModal');
   setTimeout(() => $('tName').focus(), 50);
 }
@@ -462,7 +531,8 @@ $('trackForm').onsubmit = async e => {
     Followed: $('tFollowed').checked ? 'Yes' : 'No',
     Emailed: $('tEmailed').checked ? 'Yes' : 'No',
     'Connection Sent': $('tConn').checked ? 'Yes' : 'No',
-    Accepted: $('tAccepted').checked ? 'Yes' : 'No'
+    Accepted: $('tAccepted').checked ? 'Yes' : 'No',
+    Bounced: $('tBounced').checked ? 'Yes' : 'No'
   };
   if (!body.Name && !body.LinkedIn) {
     $('trackMsg').textContent = 'Name or LinkedIn URL — at least one is required';
@@ -521,7 +591,9 @@ async function loadReport(silent) {
       <div class="stat-card ok"><div class="stat-num">${sent.toLocaleString()}</div><div class="stat-label">Total Sent Mails</div></div>
       <div class="stat-card warn"><div class="stat-num">${dups.toLocaleString()}</div><div class="stat-label">Duplicate Emails</div></div>
       <div class="stat-card violet"><div class="stat-num">${r.tracker.total.toLocaleString()}</div><div class="stat-label">LinkedIn Tracked</div></div>
-      <div class="stat-card"><div class="stat-num">${pending.toLocaleString()}</div><div class="stat-label">Pending (not sent)</div></div>`;
+      <div class="stat-card"><div class="stat-num">${pending.toLocaleString()}</div><div class="stat-label">Pending (not sent)</div></div>
+      <div class="stat-card ok"><div class="stat-num">${(r.tracker.followed || 0).toLocaleString()}</div><div class="stat-label">Follow-ups Done</div></div>
+      <div class="stat-card warn"><div class="stat-num">${(r.tracker.bounced || 0).toLocaleString()}</div><div class="stat-label">Bounced Emails</div></div>`;
 
     $('rpSummary').innerHTML =
       `<span class="ok-text">✔ Sent: <b>${sent.toLocaleString()}</b> leads</span>` +
@@ -582,6 +654,8 @@ function buildPrintSheet(label, stats) {
       <table class="pr-table">
         <tr><td>Total Leads</td><td class="num">${stats.total.toLocaleString()}</td></tr>
         <tr><td>Total Sent Mails</td><td class="num">${stats.sent.toLocaleString()}</td></tr>
+        <tr><td>Follow-ups Done</td><td class="num">${(stats.followed || 0).toLocaleString()}</td></tr>
+        <tr><td>Bounced Emails</td><td class="num">${(stats.bounced || 0).toLocaleString()}</td></tr>
         <tr><td>Duplicate Emails</td><td class="num">${stats.dups.toLocaleString()}</td></tr>
         <tr><td>LinkedIn Tracked</td><td class="num">${stats.linkedin.toLocaleString()}</td></tr>
       </table>
@@ -592,17 +666,51 @@ function buildPrintSheet(label, stats) {
     </div>`;
 }
 
-$('printBtn').onclick = () => {
+function fillPrintSheet(getStats) {
   if (!lastReport) return;
   const total = lastReport.sheet.total;
   const sent = lastWeeks.reduce((a, x) => a + x.sent, 0);
-  const rangeLabel = (state.lastStats && state.lastStats.dateRange && state.lastStats.dateRange.label) || 'All time';
-  $('printArea').innerHTML = buildPrintSheet(rangeLabel, {
+  const rangeLabel = (state.lastStats && state.lastStats.dateRange && state.lastStats.dateRange.label)
+    || (lastWeeks.length ? `${lastWeeks[lastWeeks.length - 1].label.split('–')[0].trim()} – ${lastWeeks[0].label.split('–')[1].trim()}` : 'All time');
+  const stats = Object.assign({
     total, sent, dups: lastReport.sheet.duplicateRows,
     linkedin: lastReport.tracker.total,
+    followed: lastReport.tracker.followed || 0,
+    bounced: lastReport.tracker.bounced || 0,
     pending: Math.max(0, total - sent)
-  });
+  }, getStats || {});
+  $('printArea').innerHTML = buildPrintSheet(rangeLabel, stats);
+  return { rangeLabel, stats };
+}
+
+$('printBtn').onclick = () => {
+  if (!fillPrintSheet(null)) return;
   window.print();
+  $('printArea').innerHTML = '';
+};
+
+$('pngBtn').onclick = async () => {
+  if (!lastReport) return;
+  if (typeof html2canvas === 'undefined') { toast('PNG library load nahi hui — internet check karo', 'err'); return; }
+  const filled = fillPrintSheet(null);
+  if (!filled) return;
+  try {
+    const stage = document.createElement('div');
+    stage.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#fff;z-index:-1;';
+    stage.appendChild($('printArea').firstElementChild.cloneNode(true));
+    document.body.appendChild(stage);
+    const canvas = await html2canvas(stage.firstElementChild, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    const a = document.createElement('a');
+    a.download = 'weekly-report-' + new Date().toISOString().slice(0, 10) + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    stage.remove();
+    toast('PNG download ho gayi ✓', 'ok');
+  } catch (err) {
+    toast('PNG fail: ' + err.message, 'err');
+  } finally {
+    $('printArea').innerHTML = '';
+  }
 };
 
 $('weeksBody').addEventListener('click', e => {
@@ -612,9 +720,13 @@ $('weeksBody').addEventListener('click', e => {
   if (!w) return;
   $('printArea').innerHTML = buildPrintSheet(w.label, {
     total: w.total, sent: w.sent, dups: w.duplicates,
-    linkedin: w.linkedin, pending: w.pending
+    linkedin: w.linkedin,
+    followed: lastReport && lastReport.tracker ? lastReport.tracker.followed : 0,
+    bounced: lastReport && lastReport.tracker ? lastReport.tracker.bounced : 0,
+    pending: w.pending
   });
   window.print();
+  $('printArea').innerHTML = '';
 });
 
 $('reportRefresh').onclick = loadReport;

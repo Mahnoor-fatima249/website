@@ -315,11 +315,53 @@ app.get('/api/stats', requireLogin, async (req, res) => {
   }
 });
 
+/* ---------- DATE RANGE CALENDAR ---------- */
+app.get('/api/range', requireLogin, async (req, res) => {
+  try {
+    const leads = await store.listLeads();
+    const from = req.query.from ? parseDate(String(req.query.from) + 'T00:00:00') : null;
+    const to = req.query.to ? parseDate(String(req.query.to) + 'T23:59:59') : null;
+    if ((req.query.from || req.query.to) && (!from || !to)) throw new Error('Invalid dates');
+    const list = leads.filter(l => {
+      const d = parseDate(l.Date);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    });
+    let sent = 0;
+    const days = {};
+    const shifts = {};
+    for (const l of list) {
+      const isSent = isSentRow(l);
+      if (isSent) sent++;
+      const d = parseDate(l.Date);
+      const k = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+      if (!days[k]) days[k] = { date: k, total: 0, sent: 0 };
+      days[k].total++;
+      if (isSent) days[k].sent++;
+      const sh = l.Shift || 'Other';
+      if (!shifts[sh]) shifts[sh] = { name: sh, count: 0, sent: 0 };
+      shifts[sh].count++;
+      if (isSent) shifts[sh].sent++;
+    }
+    res.json({
+      total: list.length,
+      sent,
+      notSent: list.length - sent,
+      days: Object.values(days).sort((a, b) => (a.date < b.date ? 1 : -1)),
+      shifts: Object.values(shifts).sort((a, b) => b.count - a.count)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ---------- LINKEDIN TRACKER (manual entries) ---------- */
 
 function trackerFields(body) {
   const out = {};
-  ['Name', 'Email', 'LinkedIn', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Notes'].forEach(k => {
+  ['Name', 'Email', 'LinkedIn', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Bounced', 'Notes'].forEach(k => {
     if (body[k] !== undefined) out[k] = body[k];
   });
   return out;
@@ -402,14 +444,16 @@ app.get('/api/report', requireLogin, async (req, res) => {
     const trackedTotal = tracker.length;
     const tEmailed = tracker.filter(t => t.Emailed === 'Yes').length;
     const tFollowed = tracker.filter(t => t.Followed === 'Yes').length;
+    const tBounced = tracker.filter(t => t.Bounced === 'Yes').length;
 
     const perUserMap = {};
     tracker.forEach(t => {
       const u = t['Added By'] || 'Unknown';
-      if (!perUserMap[u]) perUserMap[u] = { added: 0, emailed: 0, followed: 0 };
+      if (!perUserMap[u]) perUserMap[u] = { added: 0, emailed: 0, followed: 0, bounced: 0 };
       perUserMap[u].added++;
       if (t.Emailed === 'Yes') perUserMap[u].emailed++;
       if (t.Followed === 'Yes') perUserMap[u].followed++;
+      if (t.Bounced === 'Yes') perUserMap[u].bounced++;
     });
 
     const scrNums = tracker.map(t => parseFloat(t.SCR)).filter(v => Number.isFinite(v));
@@ -426,6 +470,7 @@ app.get('/api/report', requireLogin, async (req, res) => {
         total: trackedTotal,
         emailed: tEmailed,
         followed: tFollowed,
+        bounced: tBounced,
         scrAvg
       },
       emailPercent: trackedTotal ? Math.round((tEmailed / trackedTotal) * 100) : 0,
