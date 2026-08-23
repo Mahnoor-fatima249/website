@@ -298,6 +298,13 @@ $('pgNext').onclick = () => { state.page++; renderLeads(); };
 ['statusFilter', 'shiftFilter'].forEach(id => $(id).addEventListener('change', () => { state.page = 1; renderLeads(); }));
 
 /* ============ LINKEDIN TRACKER ============ */
+function normUrl(u) {
+  const s = String(u || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  return 'https://' + s.replace(/^\/+/, '');
+}
+
 async function loadTracker(silent) {
   try {
     const r = await api('/api/tracker');
@@ -352,7 +359,7 @@ function renderTrackTable() {
       <td class="cell-muted">${esc(t.ID)}</td>
       <td><b>${esc(t.Name)}</b></td>
       <td>${t.Email ? `<a href="mailto:${esc(t.Email)}">${esc(t.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
-      <td>${t.LinkedIn ? `<a href="${esc(t.LinkedIn)}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
+      <td>${t.LinkedIn ? `<a href="${esc(normUrl(t.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
       <td><b>${esc(t.SCR) || '-'}</b></td>
       <td><span class="badge ${t.Followed === 'Yes' ? 'yes' : 'no'} toggle" data-field="Followed">${t.Followed === 'Yes' ? 'Followed' : 'Not yet'}</span></td>
       <td><span class="badge ${t.Emailed === 'Yes' ? 'yes' : 'no'} toggle" data-field="Emailed">${t.Emailed === 'Yes' ? 'Sent ✓' : 'Not sent'}</span></td>
@@ -449,7 +456,7 @@ $('trackForm').onsubmit = async e => {
   const body = {
     Name: $('tName').value.trim(),
     Email: $('tEmail').value.trim(),
-    LinkedIn: $('tLinkedin').value.trim(),
+    LinkedIn: normUrl($('tLinkedin').value),
     SCR: $('tScr').value.trim(),
     Notes: $('tNotes').value.trim(),
     Followed: $('tFollowed').checked ? 'Yes' : 'No',
