@@ -611,7 +611,10 @@ async function loadReport(silent) {
           <td>${x.pending}</td>
           <td>${x.duplicates}</td>
           <td>${x.linkedin}</td>
-          <td><button class="btn btn-ghost btn-sm week-print" data-key="${esc(x.key)}">Print</button></td>
+          <td><div class="row-actions">
+            <button class="btn btn-ghost btn-sm week-print" data-key="${esc(x.key)}">Print</button>
+            <button class="btn btn-ghost btn-sm week-png" data-key="${esc(x.key)}">PNG</button>
+          </div></td>
         </tr>`).join('');
     } else {
       $('weeksBody').innerHTML = '';
@@ -689,35 +692,34 @@ $('printBtn').onclick = () => {
   $('printArea').innerHTML = '';
 };
 
-$('pngBtn').onclick = async () => {
-  if (!lastReport) return;
+async function capturePng(filename) {
   if (typeof html2canvas === 'undefined') { toast('PNG library load nahi hui — internet check karo', 'err'); return; }
-  const filled = fillPrintSheet(null);
-  if (!filled) return;
+  const stage = document.createElement('div');
+  stage.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#fff;z-index:-1;';
+  stage.appendChild($('printArea').firstElementChild.cloneNode(true));
+  document.body.appendChild(stage);
   try {
-    const stage = document.createElement('div');
-    stage.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:#fff;z-index:-1;';
-    stage.appendChild($('printArea').firstElementChild.cloneNode(true));
-    document.body.appendChild(stage);
     const canvas = await html2canvas(stage.firstElementChild, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
     const a = document.createElement('a');
-    a.download = 'weekly-report-' + new Date().toISOString().slice(0, 10) + '.png';
+    a.download = filename;
     a.href = canvas.toDataURL('image/png');
     a.click();
-    stage.remove();
     toast('PNG download ho gayi ✓', 'ok');
   } catch (err) {
     toast('PNG fail: ' + err.message, 'err');
   } finally {
+    stage.remove();
     $('printArea').innerHTML = '';
   }
+}
+
+$('pngBtn').onclick = async () => {
+  if (!lastReport) return;
+  if (!fillPrintSheet(null)) return;
+  await capturePng('weekly-report-' + new Date().toISOString().slice(0, 10) + '.png');
 };
 
-$('weeksBody').addEventListener('click', e => {
-  const btn = e.target.closest('.week-print');
-  if (!btn) return;
-  const w = lastWeeks.find(x => x.key === btn.dataset.key);
-  if (!w) return;
+function fillWeekPrintSheet(w) {
   $('printArea').innerHTML = buildPrintSheet(w.label, {
     total: w.total, sent: w.sent, dups: w.duplicates,
     linkedin: w.linkedin,
@@ -725,8 +727,21 @@ $('weeksBody').addEventListener('click', e => {
     bounced: lastReport && lastReport.tracker ? lastReport.tracker.bounced : 0,
     pending: w.pending
   });
-  window.print();
-  $('printArea').innerHTML = '';
+}
+
+$('weeksBody').addEventListener('click', async e => {
+  const pbtn = e.target.closest('.week-print');
+  const gbtn = e.target.closest('.week-png');
+  if (!pbtn && !gbtn) return;
+  const w = lastWeeks.find(x => x.key === (pbtn || gbtn).dataset.key);
+  if (!w) return;
+  fillWeekPrintSheet(w);
+  if (pbtn) {
+    window.print();
+    $('printArea').innerHTML = '';
+  } else {
+    await capturePng(`weekly-${w.key}.png`);
+  }
 });
 
 $('reportRefresh').onclick = loadReport;
