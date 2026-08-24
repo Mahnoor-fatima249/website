@@ -928,7 +928,11 @@ function renderDaily() {
   const rows = sel.value === 'all' ? all : all.filter(e => String(e.Date || '').slice(0, 7) === sel.value);
 
   const sum = k => rows.reduce((a, e) => a + (Number(e[k]) || 0), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const tRows = all.filter(e => e.Date === today);
+  const tSum = k => tRows.reduce((a, e) => a + (Number(e[k]) || 0), 0);
   $('dailyStats').innerHTML = `
+    <div class="stat-card violet"><div class="stat-num">${tSum('sent').toLocaleString()}</div><div class="stat-label">Aaj (Today)</div><div class="stat-sub">🔁 ${tSum('fuSent')} FU · 💬 ${tSum('respAuto') + tSum('respGenuine')} replies · 🔗 ${tSum('liOutreach')} LI</div></div>
     <div class="stat-card brand"><div class="stat-num">${rows.length}</div><div class="stat-label">Entries</div></div>
     <div class="stat-card ok"><div class="stat-num">${sum('sent').toLocaleString()}</div><div class="stat-label">✉️ Emails Sent</div></div>
     <div class="stat-card warn"><div class="stat-num">${sum('bounced').toLocaleString()}</div><div class="stat-label">↩️ Bounced</div></div>
@@ -938,6 +942,42 @@ function renderDaily() {
     <div class="stat-card ok"><div class="stat-num">${sum('respGenuine').toLocaleString()}</div><div class="stat-label">💬 Genuine Replies</div></div>
     <div class="stat-card brand"><div class="stat-num">${sum('liOutreach').toLocaleString()}</div><div class="stat-label">🔗 LinkedIn Outreach</div></div>
     <div class="stat-card violet"><div class="stat-num">${sum('liResponses').toLocaleString()}</div><div class="stat-label">🔗 LinkedIn Responses</div></div>`;
+
+  /* ---- Day by Day (date-wise jama) ---- */
+  const byDate = new Map();
+  for (const e of rows) {
+    const d = String(e.Date || '').slice(0, 10);
+    if (!d) continue;
+    if (!byDate.has(d)) byDate.set(d, { sent: 0, bounced: 0, fuSent: 0, fuBounced: 0, respAuto: 0, respGenuine: 0, liOutreach: 0, liResponses: 0 });
+    const g = byDate.get(d);
+    for (const k of ['sent', 'bounced', 'fuSent', 'fuBounced', 'respAuto', 'respGenuine', 'liOutreach', 'liResponses']) g[k] += Number(e[k]) || 0;
+  }
+  const dates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+  $('byDayEmptyD').classList.toggle('hidden', !!dates.length);
+  $('dailyByDay').innerHTML = dates.map(d => {
+    const g = byDate.get(d);
+    return `<tr><td><b>${esc(fmtDate(d))}</b></td><td>${g.sent}</td><td>${g.bounced}</td><td>${g.fuSent}</td><td>${g.fuBounced}</td><td>${g.respAuto}</td><td>${g.respGenuine}</td><td>${g.liOutreach}</td><td>${g.liResponses}</td></tr>`;
+  }).join('');
+
+  /* ---- Weekly totals (Mon-Sun) ---- */
+  const byWeek = new Map();
+  for (const [d, g] of byDate) {
+    const mon = new Date(d + 'T00:00:00');
+    mon.setDate(mon.getDate() - (mon.getDay() + 6) % 7);
+    const key = mon.toISOString().slice(0, 10);
+    if (!byWeek.has(key)) byWeek.set(key, { days: new Set(), sent: 0, bounced: 0, fuSent: 0, replies: 0, liOutreach: 0 });
+    const w = byWeek.get(key);
+    w.days.add(d);
+    w.sent += g.sent; w.bounced += g.bounced; w.fuSent += g.fuSent; w.replies += g.respAuto + g.respGenuine; w.liOutreach += g.liOutreach;
+  }
+  const wkKeys = [...byWeek.keys()].sort((a, b) => b.localeCompare(a));
+  $('weeksEmptyD').classList.toggle('hidden', !!wkKeys.length);
+  $('dailyWeeks').innerHTML = wkKeys.map(k => {
+    const w = byWeek.get(k);
+    const end = new Date(k + 'T00:00:00'); end.setDate(end.getDate() + 6);
+    const lbl = `${new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    return `<tr><td><b>${esc(lbl)}</b></td><td>${w.days.size}</td><td>${w.sent.toLocaleString()}</td><td>${w.bounced.toLocaleString()}</td><td>${w.fuSent.toLocaleString()}</td><td>${w.replies.toLocaleString()}</td><td>${w.liOutreach.toLocaleString()}</td></tr>`;
+  }).join('');
 
   const sorted = [...rows].sort((a, b) =>
     String(b.Date || '').localeCompare(String(a.Date || '')) ||
