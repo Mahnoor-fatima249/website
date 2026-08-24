@@ -1,74 +1,74 @@
 /* ============================================================
    LEAD MANAGER — MODERN THEME
-   Default: DARK PREMIUM (deep navy + cyan glow)
-   Toggle:  LIGHT (clean white + blue)
+   Default: DARK PREMIUM (deep indigo + violet-pink glow)
+   Toggle:  LIGHT (clean white + soft violet)
    Print/PNG sheet hamesha light rehta hai (paper ke liye)
    ============================================================ */
 
 :root {
-  --bg: #060a14;
-  --glow-1: rgba(34, 211, 238, .10);
-  --glow-2: rgba(99, 102, 241, .12);
-  --card: #0d1526;
-  --card-soft: #111c31;
-  --ink: #e8eefb;
-  --muted: #8fa2bf;
-  --line: #1d2a44;
-  --soft: #152238;
-  --hover: rgba(34, 211, 238, .07);
-  --brand: #22d3ee;
-  --brand-strong: #67e8f9;
-  --brand-link: #38bdf8;
-  --grad-brand: linear-gradient(135deg, #06b6d4, #3b82f6);
-  --brand-soft: rgba(34, 211, 238, .12);
-  --violet: #a5b4fc;
-  --violet-soft: rgba(129, 140, 248, .16);
+  --bg: #080713;
+  --glow-1: rgba(139, 92, 246, .12);
+  --glow-2: rgba(236, 72, 153, .09);
+  --card: #100e22;
+  --card-soft: #16132c;
+  --ink: #ede9fe;
+  --muted: #9d97c4;
+  --line: #26224a;
+  --soft: #1c1940;
+  --hover: rgba(139, 92, 246, .08);
+  --brand: #a78bfa;
+  --brand-strong: #c4b5fd;
+  --brand-link: #818cf8;
+  --grad-brand: linear-gradient(135deg, #8b5cf6, #ec4899);
+  --brand-soft: rgba(139, 92, 246, .14);
+  --violet: #f0abfc;
+  --violet-soft: rgba(236, 72, 153, .16);
   --ok: #34d399;
   --ok-soft: rgba(52, 211, 153, .13);
   --warn: #fbbf24;
   --warn-soft: rgba(251, 191, 36, .12);
   --danger: #fb7185;
   --danger-soft: rgba(251, 113, 133, .14);
-  --topbar: rgba(5, 9, 19, .88);
+  --topbar: rgba(10, 8, 22, .9);
   --banner-bg: rgba(251, 191, 36, .09);
   --banner-ink: #fcd34d;
   --banner-line: rgba(251, 191, 36, .35);
-  --toast-bg: #14213c;
-  --chart-grid: rgba(143, 162, 191, .15);
+  --toast-bg: #1c1940;
+  --chart-grid: rgba(157, 151, 196, .15);
   --radius: 16px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 14px 40px -16px rgba(0, 0, 0, .55);
 }
 
 [data-theme="light"] {
-  --bg: #f4f7fc;
-  --glow-1: rgba(6, 182, 212, .10);
-  --glow-2: rgba(99, 102, 241, .08);
+  --bg: #f7f5fd;
+  --glow-1: rgba(124, 58, 237, .08);
+  --glow-2: rgba(219, 39, 119, .06);
   --card: #ffffff;
-  --card-soft: #f7f9fd;
-  --ink: #0b1526;
-  --muted: #5a6b84;
-  --line: #e4eaf3;
-  --soft: #edf1f7;
-  --hover: #f0fdfa;
-  --brand: #0891b2;
-  --brand-strong: #0e7490;
-  --brand-link: #0284c7;
-  --grad-brand: linear-gradient(135deg, #06b6d4, #2563eb);
-  --brand-soft: #ecfeff;
-  --violet: #6366f1;
-  --violet-soft: #eef2ff;
+  --card-soft: #faf9ff;
+  --ink: #171332;
+  --muted: #6b6590;
+  --line: #e8e4f6;
+  --soft: #f1eefb;
+  --hover: #f6f3ff;
+  --brand: #7c3aed;
+  --brand-strong: #6d28d9;
+  --brand-link: #4f46e5;
+  --grad-brand: linear-gradient(135deg, #7c3aed, #db2777);
+  --brand-soft: #f1ebff;
+  --violet: #c026d3;
+  --violet-soft: #fdf0fb;
   --ok: #059669;
   --ok-soft: #d9f4e7;
   --warn: #b45309;
   --warn-soft: #fdf0d3;
   --danger: #e11d48;
   --danger-soft: #ffe4ea;
-  --topbar: #0a1220;
+  --topbar: #14112b;
   --banner-bg: #fffbeb;
   --banner-ink: #92400e;
   --banner-line: #fcd34d;
-  --toast-bg: #0b1526;
-  --chart-grid: rgba(90, 107, 132, .18);
+  --toast-bg: #171332;
+  --chart-grid: rgba(107, 101, 144, .18);
   --shadow: 0 1px 2px rgba(11, 21, 38, .05), 0 10px 30px -12px rgba(11, 21, 38, .14);
 }
 
@@ -86,7 +86,7 @@ body {
   transition: background-color .25s ease, color .25s ease;
 }
 
-::selection { background: rgba(34, 211, 238, .35); }
+::selection { background: rgba(139, 92, 246, .35); }
 
 .hidden { display: none !important; }
 
@@ -95,8 +95,8 @@ body {
 .brand span:last-child { color: var(--brand); }
 .brand-dot {
   width: 11px; height: 11px; border-radius: 50%;
-  background: linear-gradient(135deg, #22d3ee, #3b82f6);
-  box-shadow: 0 0 12px rgba(34, 211, 238, .7);
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  box-shadow: 0 0 12px rgba(139, 92, 246, .65);
 }
 .brand-lg { font-size: 26px; justify-content: center; }
 
@@ -167,14 +167,14 @@ input[type="search"], select, textarea {
   transition: border-color .15s, box-shadow .15s;
 }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: .75; }
-input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(34, 211, 238, .18); }
+input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(139, 92, 246, .2); }
 select option { background: var(--card); color: var(--ink); }
 textarea { resize: vertical; }
 
 .slots-info {
   background: var(--brand-soft);
   color: var(--brand-strong);
-  border: 1px solid rgba(34, 211, 238, .35);
+  border: 1px solid rgba(139, 92, 246, .4);
   font-size: 13px;
   border-radius: 10px;
   padding: 10px 12px;
@@ -196,7 +196,7 @@ textarea { resize: vertical; }
 .btn:active { transform: translateY(1px); }
 .btn-block { width: 100%; }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
-.btn-primary { background: var(--grad-brand); color: #fff; box-shadow: 0 6px 18px -8px rgba(6, 182, 212, .7); }
+.btn-primary { background: var(--grad-brand); color: #fff; box-shadow: 0 6px 18px -8px rgba(139, 92, 246, .6); }
 .btn-ghost { background: var(--soft); color: var(--ink); }
 .btn-danger { background: #e11d48; color: #fff; }
 [data-theme="dark"] .btn-danger { background: #be123c; }
@@ -222,7 +222,7 @@ textarea { resize: vertical; }
 .nav { display: flex; gap: 5px; background: rgba(255, 255, 255, .07); padding: 4px; border-radius: 11px; }
 .nav-btn { border: 0; background: transparent; padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; color: #94a3b8; font-size: 14px; transition: all .15s; font-family: inherit; }
 .nav-btn:hover { color: #e2e8f0; }
-.nav-btn.active { background: #fff; color: #0e7490; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
+.nav-btn.active { background: #fff; color: #6d28d9; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
 
 .user-chip { display: flex; align-items: center; gap: 12px; }
 .build-tag { font-size: 10.5px; color: var(--muted); opacity: .75; letter-spacing: .3px; }
@@ -241,7 +241,7 @@ textarea { resize: vertical; }
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
   background: linear-gradient(180deg, #94a3b8, #cbd5e1);
 }
-.stat-card.brand::before { background: linear-gradient(180deg, #06b6d4, #3b82f6); }
+.stat-card.brand::before { background: linear-gradient(180deg, #8b5cf6, #ec4899); }
 .stat-card.ok::before { background: linear-gradient(180deg, #10b981, #34d399); }
 .stat-card.warn::before { background: linear-gradient(180deg, #f59e0b, #fbbf24); }
 .stat-card.violet::before { background: linear-gradient(180deg, #8b5cf6, #a78bfa); }
@@ -302,6 +302,10 @@ td a:hover { text-decoration: underline; }
 }
 .leads-table thead th:nth-child(2) { z-index: 3; }
 .leads-table tbody tr:hover td:nth-child(2) { background: var(--hover); }
+
+/* Column sorting — header clickable, arrow indicator */
+.leads-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+.leads-table th.sortable:hover { color: var(--brand-strong); }
 /* LinkedIn tracker ke Notes — chaura flat note-box (lamba/tall nahi) */
 .note-box {
   display: inline-block;
@@ -403,7 +407,7 @@ tr.cur-week td { background: var(--brand-soft); }
 .progress-row { margin-bottom: 14px; }
 .progress-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .progress-track { height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #06b6d4, #3b82f6); transition: width .4s ease; }
+.progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #8b5cf6, #ec4899); transition: width .4s ease; }
 .progress-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
 
 /* ---------- MODALS ---------- */
@@ -423,7 +427,7 @@ tr.cur-week td { background: var(--brand-soft); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 .checks { display: flex; flex-direction: column; gap: 8px; justify-content: center; padding-top: 4px; }
 .check { display: flex !important; align-items: center; gap: 8px; font-weight: 500 !important; margin: 0 !important; cursor: pointer; }
-.check input { width: 16px; height: 16px; accent-color: #06b6d4; }
+.check input { width: 16px; height: 16px; accent-color: #7c3aed; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 
 /* ---------- TOAST ---------- */

@@ -1,0 +1,14 @@
+{
+  "name": "Nexe Agent — Lead Manager",
+  "short_name": "Nexe Agent",
+  "description": "Team lead manager with Google Sheets live sync",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080713",
+  "theme_color": "#080713",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

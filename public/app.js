@@ -73,8 +73,8 @@ function chartPalette() {
   const v = n => cs.getPropertyValue(n).trim();
   return {
     muted: v('--muted'), grid: v('--chart-grid'), card: v('--card'),
-    brand: '#06b6d4', blue: '#3b82f6', violet: '#8b5cf6',
-    ok: '#10b981', warn: '#f59e0b', danger: '#f43f5e', slate: '#64748b'
+    brand: '#8b5cf6', blue: '#6366f1', violet: '#ec4899',
+    ok: '#10b981', warn: '#f59e0b', danger: '#f43f5e', slate: '#94a3bd'
   };
 }
 
@@ -518,7 +518,25 @@ function leadExtraCols() {
 }
 
 function renderLeads() {
-  const rows = filteredLeads();
+  let rows = filteredLeads();
+
+  /* Column sorting: header par click karke A-Z ya number ke hisab se */
+  if (state.sortKey) {
+    const k = state.sortKey, dir = state.sortDir;
+    rows = rows.slice().sort((a, b) => {
+      const av = String(a[k] == null ? '' : a[k]).trim();
+      const bv = String(b[k] == null ? '' : b[k]).trim();
+      if (!av && bv) return 1;   /* khali cells hamesha sab se neeche */
+      if (av && !bv) return -1;
+      const an = parseFloat(av.replace(/[^\d.-]/g, ''));
+      const bn = parseFloat(bv.replace(/[^\d.-]/g, ''));
+      let c;
+      if (!isNaN(an) && !isNaN(bn) && /^[\d.,\s%$+-]*$/.test(av) && /^[\d.,\s%$+-]*$/.test(bv)) c = an - bn;
+      else c = av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      return c * dir;
+    });
+  }
+
   const pages = Math.max(1, Math.ceil(rows.length / state.pageSize));
   if (state.page > pages) state.page = pages;
 
@@ -527,14 +545,28 @@ function renderLeads() {
 
   /* Priority columns Phone ke baad, baqi naye columns table ke akhir me */
   const { prio, rest } = leadExtraCols();
+
+  /* Sortable header cells — click karke sort */
+  const thCell = (label, key) => {
+    if (!key) return `<th>${label}</th>`;
+    const ind = state.sortKey === key ? (state.sortDir === 1 ? ' asc' : ' desc') : '';
+    return `<th class="sortable${ind}" data-key="${esc(key)}" title="Click karke sort karein">${esc(label)}${state.sortKey === key ? (state.sortDir === 1 ? ' ▲' : ' ▼') : ''}</th>`;
+  };
   const theadTr = document.querySelector('#leadsView .leads-table thead tr');
   if (theadTr) {
     theadTr.innerHTML =
-      '<th>#</th><th>Business</th><th>Email</th><th>Phone</th>' +
-      prio.map(h => `<th>${esc(h)}</th>`).join('') +
-      '<th>LinkedIn</th><th>Shift</th><th>Status</th><th>Category</th><th>Date</th>' +
+      '<th>#</th>' +
+      thCell('Business', 'Name') +
+      thCell('Email', 'Email') +
+      thCell('Phone', 'Phone') +
+      prio.map(h => thCell(h, h)).join('') +
+      thCell('LinkedIn', 'LinkedIn') +
+      thCell('Shift', 'Shift') +
+      thCell('Status', 'Status') +
+      thCell('Category', 'Category') +
+      thCell('Date', 'Date') +
       '<th class="no-print">Actions</th>' +
-      rest.map(h => `<th>${esc(h)}</th>`).join('');
+      rest.map(h => thCell(h, h)).join('');
   }
 
   $('leadsBody').innerHTML = slice.map(l => `
@@ -564,6 +596,20 @@ function renderLeads() {
 
 $('pgPrev').onclick = () => { if (state.page > 1) { state.page--; renderLeads(); } };
 $('pgNext').onclick = () => { state.page++; renderLeads(); };
+
+/* Header click → sort toggle */
+const _leadsTheadEl = document.querySelector('#leadsView .leads-table thead');
+if (_leadsTheadEl) {
+  _leadsTheadEl.addEventListener('click', e => {
+    const th = e.target.closest('th.sortable');
+    if (!th) return;
+    const k = th.dataset.key;
+    if (state.sortKey === k) state.sortDir *= -1;
+    else { state.sortKey = k; state.sortDir = 1; }
+    state.page = 1;
+    renderLeads();
+  });
+}
 ['leadSearch'].forEach(id => $(id).addEventListener('input', () => { state.page = 1; renderLeads(); }));
 ['statusFilter', 'shiftFilter'].forEach(id => $(id).addEventListener('change', () => { state.page = 1; renderLeads(); }));
 
@@ -757,8 +803,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
 });
 
+let dupWarned = false;
+
 function openTrackModal(src) {
   $('trackMsg').textContent = '';
+  $('trackMsg').style.color = '';
+  dupWarned = false;
   let t = null, editing = false;
   if (src && typeof src === 'object') {
     /* Lead row ke "+ Track" button se prefill — nayi entry */
@@ -802,6 +852,22 @@ $('trackForm').onsubmit = async e => {
     $('trackMsg').textContent = 'Name or LinkedIn URL — at least one is required';
     return;
   }
+
+  /* Duplicate check: same email ya LinkedIn pehle se tracked hai to warn karo */
+  if (!state.editingTrackId && !dupWarned) {
+    const em = body.Email.trim().toLowerCase();
+    const li = normUrl(body.LinkedIn).trim().toLowerCase().replace(/\/+$/, '');
+    const dup = state.tracker.find(t =>
+      (em && String(t.Email || '').trim().toLowerCase() === em) ||
+      (li && li !== 'https://' && String(normUrl(t.LinkedIn || '')).toLowerCase().replace(/\/+$/, '') === li));
+    if (dup) {
+      dupWarned = true;
+      $('trackMsg').style.color = 'var(--warn)';
+      $('trackMsg').innerHTML = `⚠ <b>${esc(dup.Name || 'Ye entry')}</b> pehle se tracked hai (${esc(dup['Added By'] || '?')}, ${fmtDate(dup.Date)}). Phir bhi save karna hai to dobara Save dabao.`;
+      return;
+    }
+  }
+  dupWarned = false;
   try {
     if (state.editingTrackId) {
       await api(`/api/tracker/${state.editingTrackId}`, { method: 'PUT', body });
