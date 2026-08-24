@@ -176,7 +176,8 @@ function enterApp(user) {
     if (m.mode !== 'google') {
       const b = $('modeBanner');
       b.classList.remove('hidden');
-      b.innerHTML = '<b>Google Sheet is not connected yet.</b> Put your service-account.json inside the credentials folder (see README Section 2). Until then, tracker entries are saved to a local file.';
+      const reason = m.reason ? `<br><b>Wajah:</b> ${esc(m.reason)}` : '';
+      b.innerHTML = '<b>Google Sheet is not connected yet.</b> Vercel par Environment Variables check karein (SHEET_ID, GOOGLE_CREDENTIALS_B64) aur Redeploy karein.' + reason;
     }
   }).catch(() => {});
 

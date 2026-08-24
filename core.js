@@ -92,7 +92,7 @@ let readyPromise = Promise.resolve();
 app.use('/api', (req, res, next) => readyPromise.then(() => next(), () => next()));
 
 app.get('/api/meta', requireLogin, (req, res) => {
-  res.json({ mode: store.mode(), readonly: true });
+  res.json({ mode: store.mode(), readonly: true, reason: store.getInitError() });
 });
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */

@@ -27,6 +27,7 @@ function mode() {
 module.exports = {
   init,
   mode,
+  getInitError: () => (sheets.getInitError ? sheets.getInitError() : null),
   getTabs: () => (backend.getTabs ? backend.getTabs() : []),
   listLeads: (...a) => backend.listLeads(...a),
   trackerList: (...a) => backend.trackerList(...a),

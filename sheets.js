@@ -13,6 +13,7 @@ const path = require('path');
 
 let client = null;
 let sheetId = null;
+let lastInitError = null;   // Vercel diagnosis: connect na hone ki wajah
 
 let tabsInfo = [];          // [{title, colMap}]
 let scrapeCache = { data: null, at: 0 };
@@ -55,12 +56,6 @@ function credsObject() {
     console.warn('[sheets] GOOGLE_CREDENTIALS_B64 parse nahi hua:', err.message);
   }
   return null;
-}
-
-function configured() {
-  const sid = (process.env.SHEET_ID || '').trim();
-  const hasCreds = fs.existsSync(credPath()) || Boolean(credsObject());
-  return Boolean(sid && !sid.includes('apni_sheet_id') && hasCreds);
 }
 
 function normYN(v) {
@@ -377,35 +372,53 @@ async function trackerDelete(id) {
 /* ---------- INIT ---------- */
 
 async function init() {
-  if (!configured()) return false;
+  lastInitError = null;
+
+  const sid = (process.env.SHEET_ID || '').trim();
+  const haveCredsFile = fs.existsSync(credPath());
+  const haveCredsB64 = Boolean(credsObject());
+
+  if (!sid || sid.includes('apni_sheet_id')) {
+    lastInitError = 'SHEET_ID env var missing/invalid';
+    return false;
+  }
+  if (!haveCredsFile && !haveCredsB64) {
+    lastInitError = 'GOOGLE_CREDENTIALS_B64 env var missing ya base64 adhura hai';
+    return false;
+  }
 
   let google;
   try {
     google = require('googleapis').google;
   } catch {
-    console.warn('[sheets] googleapis package not installed');
+    lastInitError = 'googleapis package not installed';
     return false;
   }
 
-  const authOpts = { scopes: ['https://www.googleapis.com/auth/spreadsheets'] };
-  const credsObj = credsObject();
-  if (credsObj) authOpts.credentials = credsObj;
-  else authOpts.keyFile = credPath();
+  try {
+    const authOpts = { scopes: ['https://www.googleapis.com/auth/spreadsheets'] };
+    const credsObj = credsObject();
+    if (credsObj) authOpts.credentials = credsObj;
+    else authOpts.keyFile = credPath();
 
-  const auth = new google.auth.GoogleAuth(authOpts);
-  sheetId = process.env.SHEET_ID.trim();
-  client = google.sheets({ version: 'v4', auth });
+    const auth = new google.auth.GoogleAuth(authOpts);
+    sheetId = sid;
+    client = google.sheets({ version: 'v4', auth });
 
-  const m = await meta();
-  await resolveTrackerTab(m);
-  await resolveScrapeTabs(m);
-  await buildScrapeMaps();
-  await ensureTrackerHeaders();
-  rebuildTrackerMap();
+    const m = await meta();
+    await resolveTrackerTab(m);
+    await resolveScrapeTabs(m);
+    await buildScrapeMaps();
+    await ensureTrackerHeaders();
+    rebuildTrackerMap();
 
-  console.log('[sheets] READ-ONLY connect OK');
-  console.log(`[sheets] Tracker tab ready: "${trackerTabTitle}"`);
-  return true;
+    console.log('[sheets] READ-ONLY connect OK');
+    console.log(`[sheets] Tracker tab ready: "${trackerTabTitle}"`);
+    return true;
+  } catch (err) {
+    lastInitError = err.message;
+    throw err;
+  }
 }
 
 /* cloudstore ke liye: connected client + sheetId, warnah null */
@@ -417,6 +430,7 @@ module.exports = {
   name: 'google',
   init,
   getClient,
+  getInitError: () => lastInitError,
   getTabs: () => tabsInfo.map(t => ({ title: t.title, shift: shiftLabel(t.title) })),
   listLeads,
   trackerList,
