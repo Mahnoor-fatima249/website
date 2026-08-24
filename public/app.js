@@ -632,32 +632,10 @@ async function loadTracker(silent) {
     state.tracker = r.entries || [];
     renderTrackStats();
     renderTrackTable();
-    renderPendingAlerts();
     markSync();
   } catch (err) {
     if (!silent) toast(err.message, 'err');
   }
-}
-
-/* Overview card: tracker entries jinki email abhi tak nahi bheji */
-function renderPendingAlerts() {
-  const card = $('pendCard');
-  if (!card) return;
-  const pend = state.tracker
-    .filter(t => t.Emailed !== 'Yes')
-    .sort((a, b) => String(a.Date || '').localeCompare(String(b.Date || '')));
-  card.classList.toggle('hidden', state.tracker.length === 0);
-  $('pendList').innerHTML = !pend.length
-    ? '<span class="ok-text" style="font-size:14px">✔ Shabash! Sab entries par email ho chuki hai.</span>'
-    : `<div class="pend-count">${pend.length} lead${pend.length === 1 ? '' : 's'} pending</div>` +
-      '<div class="pend-grid">' +
-      pend.slice(0, 8).map(t => `
-        <div class="pend-item">
-          <div class="pend-name">${esc(t.Name || '(no name)')}</div>
-          <div class="cell-muted pend-sub">${fmtDate(t.Date)} • ${esc(t['Added By'] || '?')}</div>
-        </div>`).join('') +
-      '</div>' +
-      (pend.length > 8 ? `<div class="cell-muted" style="margin-top:8px;font-size:12px">+${pend.length - 8} aur…</div>` : '');
 }
 
 function scopedTracker() {

@@ -302,13 +302,6 @@ td a:hover { text-decoration: underline; }
 }
 .leads-table thead th:nth-child(2) { z-index: 3; }
 .leads-table tbody tr:hover td:nth-child(2) { background: var(--hover); }
-
-/* Overview follow-up pending card */
-.pend-count { font-size: 13px; font-weight: 700; color: var(--warn); margin-bottom: 10px; }
-.pend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.pend-item { background: var(--card-soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
-.pend-name { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pend-sub { font-size: 11.5px; margin-top: 2px; }
 /* LinkedIn tracker ke Notes — chaura flat note-box (lamba/tall nahi) */
 .note-box {
   display: inline-block;
