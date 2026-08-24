@@ -503,8 +503,23 @@ function filteredLeads() {
     if (sf && l.Status !== sf) return false;
     if (shf && l.Shift !== shf) return false;
     if (!q) return true;
-    return ['Name', 'Email', 'Category', 'Website', 'Phone', 'Shift'].some(k => String(l[k]).toLowerCase().includes(q));
+    /* HAR column me search — sheet me naye added columns bhi search hote hain */
+    return Object.keys(l).some(k => (k !== 'Tab' && k !== 'id') &&
+      String(l[k] == null ? '' : l[k]).toLowerCase().includes(q));
   });
+}
+
+/* Sheet ke naye columns jo website ke fixed layout me nahi hain */
+const LEAD_BASE_KEYS = ['id', 'Name', 'Email', 'Phone', 'LinkedIn', 'Status', 'Category', 'Website', 'Date', 'Shift', 'Tab'];
+
+function leadExtraCols() {
+  const extras = [];
+  for (const l of state.leads) {
+    for (const k of Object.keys(l)) {
+      if (!LEAD_BASE_KEYS.includes(k) && !extras.includes(k) && String(k).trim()) extras.push(k);
+    }
+  }
+  return extras.slice(0, 8); /* table width sane rakhne ke liye max 8 extra columns */
 }
 
 function renderLeads() {
@@ -515,13 +530,24 @@ function renderLeads() {
   const slice = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
   $('leadCountInfo').textContent = `${rows.length.toLocaleString()} lead${rows.length === 1 ? '' : 's'} found`;
 
+  /* Dynamic columns: sheet me jo bhi naya column ho wo khud table me aa jata hai */
+  const extraCols = leadExtraCols();
+  const theadTr = document.querySelector('#leadsView .leads-table thead tr');
+  if (theadTr) {
+    theadTr.innerHTML =
+      '<th>#</th><th>Business</th><th>Email</th><th>Phone</th><th>LinkedIn</th>' +
+      extraCols.map(h => `<th>${esc(h)}</th>`).join('') +
+      '<th>Shift</th><th>Status</th><th>Category</th><th>Date</th>';
+  }
+
   $('leadsBody').innerHTML = slice.map(l => `
     <tr>
       <td class="cell-muted">${esc(l.id)}</td>
       <td><b>${esc(l.Name)}</b>${l.Website ? `<br><a href="${esc(l.Website)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.Website.replace(/^https?:\/\//, '').slice(0, 40))}</a>` : ''}</td>
       <td>${l.Email ? `<a href="mailto:${esc(l.Email)}">${esc(l.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Phone) || '-'}</td>
-      <td>${l.LinkedIn ? `<a href="${esc(l.LinkedIn)}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
+      <td>${l.LinkedIn ? `<a href="${esc(normUrl(l.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
+      ${extraCols.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
       <td><span class="badge shiftb ${l.Shift === 'Day' ? 'dayb' : l.Shift === 'Night' ? 'nightb' : ''}">${esc(l.Shift)}</span></td>
       <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Category) || '-'}</td>

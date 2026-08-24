@@ -45,6 +45,9 @@ const ALIASES = {
 
 const YES_WORDS = ['yes', 'y', 'true', '1', 'sent', 'done', 'followed', 'complete', 'completed', 'replied'];
 
+/* Ye keys website khud manage karta hai — extra column kabhi inpar overwrite nahi hoga */
+const RESERVED_KEYS = new Set(['id', 'ID', 'Shift', 'Tab', ...Object.keys(ALIASES)]);
+
 function credPath() {
   return process.env.GOOGLE_CREDENTIALS || path.join(__dirname, 'credentials', 'service-account.json');
 }
@@ -112,7 +115,7 @@ async function resolveScrapeTabs(m) {
     for (const want of wanted) {
       const found = m.sheets.find(s => s.properties.title.trim().toLowerCase() === want.toLowerCase());
       if (found) {
-        tabsInfo.push({ title: found.properties.title, colMap: {} });
+        tabsInfo.push({ title: found.properties.title });
       } else {
         console.warn(`[sheets] Tab "${want}" nahi mila — skip`);
       }
@@ -123,50 +126,58 @@ async function resolveScrapeTabs(m) {
   if (!tabsInfo.length) {
     const first = m.sheets.find(s => s.properties.title !== trackerTabTitle);
     if (!first) throw new Error('Spreadsheet has no tabs');
-    tabsInfo.push({ title: first.properties.title, colMap: {} });
+    tabsInfo.push({ title: first.properties.title });
     console.warn(`[sheets] SCRAPE_TABS set nahi tha — pehla tab "${first.properties.title}" use ho raha hai`);
   }
 
   console.log('[sheets] Reading tabs: ' + tabsInfo.map(t => `"${t.title}"`).join(', '));
 }
 
-async function buildScrapeMaps() {
-  for (const info of tabsInfo) {
-    const res = await client.spreadsheets.values.get({ spreadsheetId: sheetId, range: `${info.title}!1:1` });
-    const headers = ((res.data.values && res.data.values[0]) || []).map(h => String(h).trim().toLowerCase());
-    while (headers.length && !headers[headers.length - 1]) headers.pop();
-
-    info.colMap = {};
-    for (const [field, aliases] of Object.entries(ALIASES)) {
-      info.colMap[field] = findCol(headers, aliases);
-    }
-  }
-}
-
-async function fetchTabRows(title, minCols) {
-  /* lastColIdx INCLUSIVE hai: Status col 27 (AA) me bhi ho to parha jaye */
-  const lastColIdx = Math.max(minCols, 25);
+async function fetchTabRows(title) {
+  /* A1:ZZ open range — baad me jitne naye columns add hon sab parhne me aa jate hain */
   const res = await client.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: `${title}!A1:${colLetter(lastColIdx)}`
+    range: `${title}!A1:ZZ`
   });
   return res.data.values || [];
 }
 
 function fetchLeadsOnce() {
-  /* Single-flight: jitne bhi callers wait karein, sheet read SIRF EK dafa */
+  /* Single-flight: jitne bhi callers wait karein, sheet read SIRF EK dafa.
+     Har read par headers DOBARA parse hote hain — sheet me naya column
+     add karo to wo khud-ba-khud (max ~1 min me) website par aa jata hai. */
   const p = (async () => {
     const leads = [];
     for (const info of tabsInfo) {
-      const maxCol = Math.max(...Object.values(info.colMap), 10);
-      const grid = await fetchTabRows(info.title, maxCol);
+      const grid = await fetchTabRows(info.title);
+      if (!grid.length) continue;
+
+      const headers = grid[0].map(h => String(h).trim());
+      const lower = headers.map(h => h.toLowerCase());
+      while (lower.length && !lower[lower.length - 1]) lower.pop();
+
+      /* canonical fields alias se match karo */
+      const colMap = {};
+      for (const [field, aliases] of Object.entries(ALIASES)) {
+        colMap[field] = findCol(lower, aliases);
+      }
+
+      /* baqi SAB columns extra ke tor par utha lo (naye columns live) */
+      const used = new Set(Object.values(colMap).filter(i => i >= 0));
+      const extras = [];
+      headers.forEach((name, idx) => {
+        if (idx >= lower.length || !name) return;
+        if (used.has(idx) || RESERVED_KEYS.has(name)) return;
+        extras.push({ idx, name });
+      });
+
       const shift = shiftLabel(info.title);
 
       for (let i = 1; i < grid.length; i++) {
         const arr = grid[i];
         if (!arr || arr.every(c => c == null || String(c).trim() === '')) continue;
-        const v = c => (info.colMap[c] >= 0 && arr[info.colMap[c]] != null ? String(arr[info.colMap[c]]).trim() : '');
-        leads.push({
+        const v = c => (colMap[c] >= 0 && arr[colMap[c]] != null ? String(arr[colMap[c]]).trim() : '');
+        const lead = {
           id: `${shift.replace(/\s/g, '')}-${i + 1}`,
           Name: v('Name'),
           Email: v('Email'),
@@ -178,7 +189,11 @@ function fetchLeadsOnce() {
           Date: v('Date'),
           Shift: shift,
           Tab: info.title
-        });
+        };
+        for (const ex of extras) {
+          lead[ex.name] = arr[ex.idx] != null ? String(arr[ex.idx]).trim() : '';
+        }
+        leads.push(lead);
       }
     }
     scrapeCache = { data: leads, at: Date.now() };
@@ -431,7 +446,6 @@ async function init() {
     const m = await meta();
     await resolveTrackerTab(m);
     await resolveScrapeTabs(m);
-    await buildScrapeMaps();
     await ensureTrackerHeaders();
     rebuildTrackerMap();
 

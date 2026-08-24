@@ -284,6 +284,8 @@ textarea { resize: vertical; }
 
 td a { color: var(--brand-link); text-decoration: none; font-weight: 600; word-break: break-all; }
 td a:hover { text-decoration: underline; }
+/* Sheet ke dynamically added columns — lamba text truncate ho jaye */
+.lead-extra { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell-muted { color: var(--muted); }
 .row-actions { display: flex; gap: 6px; }
 .mini-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink); font-family: inherit; }
