@@ -227,10 +227,14 @@ const VIEWS = {
 };
 
 Object.entries(VIEWS).forEach(([name, v]) => {
-  $(v.nav).onclick = () => switchView(name);
+  const btn = $(v.nav);
+  if (!btn) return;
+  btn.onclick = () => switchView(name);
 });
 
 function switchView(v) {
+  const target = VIEWS[v];
+  if (!target || !$(target.nav) || !$(target.sec)) { toast('Page purani cache se khul raha hai — Ctrl+Shift+R dabayen', 'err'); return; }
   state.view = v;
   Object.values(VIEWS).forEach(x => {
     $(x.nav).classList.remove('active');
@@ -240,7 +244,7 @@ function switchView(v) {
   $(VIEWS[v].sec).classList.remove('hidden');
   if (v === 'overview') loadStats();
   if (v === 'report') loadReport();
-  if (v === 'daily') { $('dlDate').value = $('dlDate').value || new Date().toISOString().slice(0, 10); loadDaily(); }
+  if (v === 'daily') { if ($('dlDate')) $('dlDate').value = $('dlDate').value || new Date().toISOString().slice(0, 10); loadDaily(); }
 }
 
 /* ============ OVERVIEW / STATS ============ */
@@ -917,6 +921,11 @@ async function loadDaily(silent) {
 }
 
 function renderDaily() {
+  /* Purani cached HTML par elements missing ho sakte hain — crash se bacho */
+  if (!$('dailyStats') || !$('dailyBody') || !$('dlDate')) {
+    toast('Page purana hai — Ctrl+Shift+R se reload karein', 'err');
+    return;
+  }
   const all = state.dailyEntries || [];
 
   /* month dropdown */
@@ -952,32 +961,36 @@ function renderDaily() {
     const g = byDate.get(d);
     for (const k of ['sent', 'bounced', 'fuSent', 'fuBounced', 'respAuto', 'respGenuine', 'liOutreach', 'liResponses']) g[k] += Number(e[k]) || 0;
   }
-  const dates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
-  $('byDayEmptyD').classList.toggle('hidden', !!dates.length);
-  $('dailyByDay').innerHTML = dates.map(d => {
-    const g = byDate.get(d);
-    return `<tr><td><b>${esc(fmtDate(d))}</b></td><td>${g.sent}</td><td>${g.bounced}</td><td>${g.fuSent}</td><td>${g.fuBounced}</td><td>${g.respAuto}</td><td>${g.respGenuine}</td><td>${g.liOutreach}</td><td>${g.liResponses}</td></tr>`;
-  }).join('');
+  if ($('byDayEmptyD') && $('dailyByDay')) {
+    const dates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+    $('byDayEmptyD').classList.toggle('hidden', !!dates.length);
+    $('dailyByDay').innerHTML = dates.map(d => {
+      const g = byDate.get(d);
+      return `<tr><td><b>${esc(fmtDate(d))}</b></td><td>${g.sent}</td><td>${g.bounced}</td><td>${g.fuSent}</td><td>${g.fuBounced}</td><td>${g.respAuto}</td><td>${g.respGenuine}</td><td>${g.liOutreach}</td><td>${g.liResponses}</td></tr>`;
+    }).join('');
+  }
 
   /* ---- Weekly totals (Mon-Sun) ---- */
-  const byWeek = new Map();
-  for (const [d, g] of byDate) {
-    const mon = new Date(d + 'T00:00:00');
-    mon.setDate(mon.getDate() - (mon.getDay() + 6) % 7);
-    const key = mon.toISOString().slice(0, 10);
-    if (!byWeek.has(key)) byWeek.set(key, { days: new Set(), sent: 0, bounced: 0, fuSent: 0, replies: 0, liOutreach: 0 });
-    const w = byWeek.get(key);
-    w.days.add(d);
-    w.sent += g.sent; w.bounced += g.bounced; w.fuSent += g.fuSent; w.replies += g.respAuto + g.respGenuine; w.liOutreach += g.liOutreach;
+  if ($('weeksEmptyD') && $('dailyWeeks')) {
+    const byWeek = new Map();
+    for (const [d, g] of byDate) {
+      const mon = new Date(d + 'T00:00:00');
+      mon.setDate(mon.getDate() - (mon.getDay() + 6) % 7);
+      const key = mon.toISOString().slice(0, 10);
+      if (!byWeek.has(key)) byWeek.set(key, { days: new Set(), sent: 0, bounced: 0, fuSent: 0, replies: 0, liOutreach: 0 });
+      const w = byWeek.get(key);
+      w.days.add(d);
+      w.sent += g.sent; w.bounced += g.bounced; w.fuSent += g.fuSent; w.replies += g.respAuto + g.respGenuine; w.liOutreach += g.liOutreach;
+    }
+    const wkKeys = [...byWeek.keys()].sort((a, b) => b.localeCompare(a));
+    $('weeksEmptyD').classList.toggle('hidden', !!wkKeys.length);
+    $('dailyWeeks').innerHTML = wkKeys.map(k => {
+      const w = byWeek.get(k);
+      const end = new Date(k + 'T00:00:00'); end.setDate(end.getDate() + 6);
+      const lbl = `${new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+      return `<tr><td><b>${esc(lbl)}</b></td><td>${w.days.size}</td><td>${w.sent.toLocaleString()}</td><td>${w.bounced.toLocaleString()}</td><td>${w.fuSent.toLocaleString()}</td><td>${w.replies.toLocaleString()}</td><td>${w.liOutreach.toLocaleString()}</td></tr>`;
+    }).join('');
   }
-  const wkKeys = [...byWeek.keys()].sort((a, b) => b.localeCompare(a));
-  $('weeksEmptyD').classList.toggle('hidden', !!wkKeys.length);
-  $('dailyWeeks').innerHTML = wkKeys.map(k => {
-    const w = byWeek.get(k);
-    const end = new Date(k + 'T00:00:00'); end.setDate(end.getDate() + 6);
-    const lbl = `${new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-    return `<tr><td><b>${esc(lbl)}</b></td><td>${w.days.size}</td><td>${w.sent.toLocaleString()}</td><td>${w.bounced.toLocaleString()}</td><td>${w.fuSent.toLocaleString()}</td><td>${w.replies.toLocaleString()}</td><td>${w.liOutreach.toLocaleString()}</td></tr>`;
-  }).join('');
 
   const sorted = [...rows].sort((a, b) =>
     String(b.Date || '').localeCompare(String(a.Date || '')) ||
@@ -996,51 +1009,54 @@ function renderDaily() {
   }).join('');
 }
 
-$('dailyMonth').onchange = renderDaily;
-$('dailyRefresh').onclick = () => loadDaily();
+/* Daily handlers — sirf tab jab page ke elements maujood hon */
+if ($('dailyMonth') && $('dailyForm')) {
+  $('dailyMonth').onchange = renderDaily;
+  $('dailyRefresh').onclick = () => loadDaily();
 
-$('dailyForm').onsubmit = async ev => {
-  ev.preventDefault();
-  const msg = $('dailyMsg');
-  try {
-    await api('/api/daily', {
-      method: 'POST',
-      body: {
-        date: $('dlDate').value,
-        sent: $('dlSent').value,
-        bounced: $('dlBounced').value,
-        fuSent: $('dlFuSent').value,
-        fuBounced: $('dlFuBounced').value,
-        respAuto: $('dlRespAuto').value,
-        respGenuine: $('dlRespGen').value,
-        liOutreach: $('dlLiOut').value,
-        liResponses: $('dlLiResp').value
-      }
-    });
-    toast('Daily entry save ho gayi ✓', 'ok');
-    msg.textContent = '';
-    ['dlSent', 'dlBounced', 'dlFuSent', 'dlFuBounced', 'dlRespAuto', 'dlRespGen', 'dlLiOut', 'dlLiResp']
-      .forEach(id => { $(id).value = ''; });
-    loadDaily(true);
-  } catch (err) {
-    msg.style.color = 'var(--bad)';
-    msg.textContent = err.message;
-  }
-};
-
-$('dailyBody').addEventListener('click', ev => {
-  const btn = ev.target.closest('[data-deldaily]');
-  if (!btn) return;
-  askConfirm(`Ye ${btn.dataset.deldate} ki entry delete kar dein?`, async () => {
+  $('dailyForm').onsubmit = async ev => {
+    ev.preventDefault();
+    const msg = $('dailyMsg');
     try {
-      await api(`/api/daily/${btn.dataset.deldaily}`, { method: 'DELETE' });
-      toast('Entry delete ho gayi', 'ok');
+      await api('/api/daily', {
+        method: 'POST',
+        body: {
+          date: $('dlDate').value,
+          sent: $('dlSent').value,
+          bounced: $('dlBounced').value,
+          fuSent: $('dlFuSent').value,
+          fuBounced: $('dlFuBounced').value,
+          respAuto: $('dlRespAuto').value,
+          respGenuine: $('dlRespGen').value,
+          liOutreach: $('dlLiOut').value,
+          liResponses: $('dlLiResp').value
+        }
+      });
+      toast('Daily entry save ho gayi ✓', 'ok');
+      msg.textContent = '';
+      ['dlSent', 'dlBounced', 'dlFuSent', 'dlFuBounced', 'dlRespAuto', 'dlRespGen', 'dlLiOut', 'dlLiResp']
+        .forEach(id => { $(id).value = ''; });
       loadDaily(true);
     } catch (err) {
-      toast(err.message, 'err');
+      msg.style.color = 'var(--bad)';
+      msg.textContent = err.message;
     }
+  };
+
+  $('dailyBody').addEventListener('click', ev => {
+    const btn = ev.target.closest('[data-deldaily]');
+    if (!btn) return;
+    askConfirm(`Ye ${btn.dataset.deldate} ki entry delete kar dein?`, async () => {
+      try {
+        await api(`/api/daily/${btn.dataset.deldaily}`, { method: 'DELETE' });
+        toast('Entry delete ho gayi', 'ok');
+        loadDaily(true);
+      } catch (err) {
+        toast(err.message, 'err');
+      }
+    });
   });
-});
+}
 
 /* ============ REPORT ============ */
 let lastReport = null, lastWeeks = [], currentWeekKey = null;
