@@ -244,7 +244,10 @@ function switchView(v) {
   $(VIEWS[v].sec).classList.remove('hidden');
   if (v === 'overview') loadStats();
   if (v === 'report') loadReport();
-  if (v === 'daily') { if ($('dlDate')) $('dlDate').value = $('dlDate').value || new Date().toISOString().slice(0, 10); loadDaily(); }
+  if (v === 'daily') {
+    if ($('dlDate')) $('dlDate').value = $('dlDate').value || new Date().toISOString().slice(0, 10);
+    loadDaily().then(() => { if ($('dlDate')) $('dlDate').dispatchEvent(new Event('change')); }).catch(() => {});
+  }
 }
 
 /* ============ OVERVIEW / STATS ============ */
@@ -1015,6 +1018,35 @@ if ($('dailyMonth') && $('dailyForm')) {
   $('dailyRefresh').onclick = () => loadDaily();
 
   const DAILY_INPUT_MAP = { sent: 'dlSent', bounced: 'dlBounced', fuSent: 'dlFuSent', fuBounced: 'dlFuBounced', respAuto: 'dlRespAuto', respGenuine: 'dlRespGen', liOutreach: 'dlLiOut', liResponses: 'dlLiResp' };
+
+  /* Date badlo to us din ka pehle se save data form me bhar jata hai */
+  $('dlDate').onchange = () => {
+    const d = $('dlDate').value;
+    const msg = $('dailyMsg');
+    if (!d) return;
+    const me = String((state.user && state.user.name) || '').trim().toLowerCase();
+    const dayEntries = (state.dailyEntries || []).filter(e => String(e.Date || '').slice(0, 10) === d);
+    const mine = dayEntries.filter(e => String(e.AddedBy || '').trim().toLowerCase() === me);
+    if (mine.length) {
+      const e = mine[mine.length - 1];
+      state.editingDailyId = e.id;
+      for (const [k, id] of Object.entries(DAILY_INPUT_MAP)) $(id).value = Number(e[k]) || 0;
+      msg.style.color = 'var(--brand-strong)';
+      msg.innerHTML = `📅 ${esc(d)} ki aapki entry mili (#${esc(e.id)}) — numbers bhare gaye hain. Badal kar <b>Save Karo</b> dabayen. <a href="#" id="cancelEdit" style="color:var(--bad)">Cancel</a>`;
+      $('cancelEdit').onclick = e2 => { e2.preventDefault(); state.editingDailyId = null; Object.values(DAILY_INPUT_MAP).forEach(id => { $(id).value = ''; }); msg.innerHTML = ''; };
+    } else {
+      state.editingDailyId = null;
+      Object.values(DAILY_INPUT_MAP).forEach(id => { $(id).value = ''; });
+      if (dayEntries.length) {
+        const names = [...new Set(dayEntries.map(e => e.AddedBy || '?'))].join(', ');
+        msg.style.color = 'var(--muted)';
+        msg.textContent = `ℹ️ Is date par ${names} ki entries hain — aap apni alag entry save kar sakte hain.`;
+      } else {
+        msg.innerHTML = '';
+      }
+    }
+  };
+
   const dailyBodyVals = () => {
     const body = { date: $('dlDate').value };
     for (const [k, id] of Object.entries(DAILY_INPUT_MAP)) body[k] = $(id).value;
