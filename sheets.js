@@ -30,7 +30,7 @@ let trackerFetchPromise = null;
 const TRACKER_TTL_MS = 30000;
 
 const TRACKER_TAB_DEFAULT = 'LinkedIn Tracker';
-const TRACKER_HEADERS = ['ID', 'Name', 'Email', 'LinkedIn URL', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Bounced', 'Notes', 'Added By', 'Date'];
+const TRACKER_HEADERS = ['ID', 'Name', 'Email', 'LinkedIn URL', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Notes', 'Added By', 'Date'];
 
 const ALIASES = {
   Name: ['business name', 'company name', 'business', 'company', 'lead name', 'name'],
@@ -281,7 +281,6 @@ function tRowToLead(arr, rowNumber) {
     Emailed: normYN(v(T.Emailed)),
     'Connection Sent': normYN(v(T['Connection Sent'])),
     Accepted: normYN(v(T.Accepted)),
-    Bounced: normYN(v(T.Bounced)),
     Notes: v(T.Notes),
     'Added By': v(T['Added By']),
     Date: v(T.Date)
@@ -347,7 +346,6 @@ async function trackerAdd(dataIn) {
   if (dataIn.Emailed != null) row[T.Emailed] = String(dataIn.Emailed);
   if (dataIn['Connection Sent'] != null && T['Connection Sent'] >= 0) row[T['Connection Sent']] = String(dataIn['Connection Sent']);
   if (dataIn.Accepted != null && T.Accepted >= 0) row[T.Accepted] = String(dataIn.Accepted);
-  if (dataIn.Bounced != null && T.Bounced >= 0) row[T.Bounced] = String(dataIn.Bounced);
   if (dataIn.Notes != null) row[T.Notes] = String(dataIn.Notes);
   if (dataIn['Added By'] != null) row[T['Added By']] = String(dataIn['Added By']);
   row[T.Date] = now;
@@ -372,7 +370,7 @@ async function trackerUpdate(id, patch) {
   const pairs = [
     ['Name', T.Name], ['Email', T.Email], ['LinkedIn', T['LinkedIn URL']], ['SCR', T.SCR],
     ['Followed', T.Followed], ['Emailed', T.Emailed],
-    ['Connection Sent', T['Connection Sent']], ['Accepted', T.Accepted], ['Bounced', T.Bounced], ['Notes', T.Notes]
+    ['Connection Sent', T['Connection Sent']], ['Accepted', T.Accepted], ['Notes', T.Notes]
   ];
   for (const [field, col] of pairs) {
     if (patch[field] !== undefined && col >= 0) {

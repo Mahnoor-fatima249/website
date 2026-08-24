@@ -394,7 +394,7 @@ app.get('/api/range', requireLogin, async (req, res) => {
 
 function trackerFields(body) {
   const out = {};
-  ['Name', 'Email', 'LinkedIn', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Bounced', 'Notes'].forEach(k => {
+  ['Name', 'Email', 'LinkedIn', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Notes'].forEach(k => {
     if (body[k] !== undefined) out[k] = body[k];
   });
   return out;
@@ -478,16 +478,14 @@ app.get('/api/report', requireLogin, async (req, res) => {
     const trackedTotal = tracker.length;
     const tEmailed = tracker.filter(t => t.Emailed === 'Yes').length;
     const tFollowed = tracker.filter(t => t.Followed === 'Yes').length;
-    const tBounced = tracker.filter(t => t.Bounced === 'Yes').length;
 
     const perUserMap = {};
     tracker.forEach(t => {
       const u = t['Added By'] || 'Unknown';
-      if (!perUserMap[u]) perUserMap[u] = { added: 0, emailed: 0, followed: 0, bounced: 0 };
+      if (!perUserMap[u]) perUserMap[u] = { added: 0, emailed: 0, followed: 0 };
       perUserMap[u].added++;
       if (t.Emailed === 'Yes') perUserMap[u].emailed++;
       if (t.Followed === 'Yes') perUserMap[u].followed++;
-      if (t.Bounced === 'Yes') perUserMap[u].bounced++;
     });
 
     const scrNums = tracker.map(t => parseFloat(t.SCR)).filter(v => Number.isFinite(v));
@@ -504,7 +502,6 @@ app.get('/api/report', requireLogin, async (req, res) => {
         total: trackedTotal,
         emailed: tEmailed,
         followed: tFollowed,
-        bounced: tBounced,
         scrAvg
       },
       emailPercent: trackedTotal ? Math.round((tEmailed / trackedTotal) * 100) : 0,

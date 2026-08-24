@@ -465,7 +465,6 @@ function renderLeaderboard(perUser) {
           <span><b>${u.added}</b> entries</span>
           <span>✉️ <b>${u.emailed}</b> emails</span>
           <span>👥 <b>${u.followed}</b> followed</span>
-          ${u.bounced ? `<span class="lb-bad">⚠️ <b>${u.bounced}</b> bounced</span>` : ''}
         </div>
       </div>
     </div>`).join('');
@@ -519,7 +518,7 @@ function leadExtraCols() {
       if (!LEAD_BASE_KEYS.includes(k) && !extras.includes(k) && String(k).trim()) extras.push(k);
     }
   }
-  return extras.slice(0, 8); /* table width sane rakhne ke liye max 8 extra columns */
+  return extras; /* koi limit nahi — jitne columns sheet me hon sab dikhenge (table scroll hoti hai) */
 }
 
 function renderLeads() {
@@ -633,7 +632,6 @@ function renderTrackTable() {
       <td><span class="badge ${t.Emailed === 'Yes' ? 'yes' : 'no'} toggle" data-field="Emailed">${t.Emailed === 'Yes' ? 'Sent ✓' : 'Not sent'}</span></td>
       <td><span class="badge ${t['Connection Sent'] === 'Yes' ? 'yes' : 'no'} toggle" data-field="Connection Sent">${t['Connection Sent'] === 'Yes' ? 'Sent ✓' : 'Not yet'}</span></td>
       <td><span class="badge ${t.Accepted === 'Yes' ? 'yes' : 'no'} toggle" data-field="Accepted">${t.Accepted === 'Yes' ? 'Accepted ✓' : 'Pending'}</span></td>
-      <td><span class="badge ${t.Bounced === 'Yes' ? 'warnb' : 'no'} toggle" data-field="Bounced">${t.Bounced === 'Yes' ? 'Bounced ⚠' : 'OK'}</span></td>
       <td class="cell-muted" style="max-width:220px">${esc(t.Notes)}</td>
       <td>${esc(t['Added By'])}</td>
       <td class="cell-muted">${fmtDate(t.Date)}</td>
@@ -719,7 +717,6 @@ function openTrackModal(id) {
   $('tEmailed').checked = !!(t && t.Emailed === 'Yes');
   $('tConn').checked = !!(t && t['Connection Sent'] === 'Yes');
   $('tAccepted').checked = !!(t && t.Accepted === 'Yes');
-  $('tBounced').checked = !!(t && t.Bounced === 'Yes');
   openModal('trackModal');
   setTimeout(() => $('tName').focus(), 50);
 }
@@ -738,8 +735,7 @@ $('trackForm').onsubmit = async e => {
     Followed: $('tFollowed').checked ? 'Yes' : 'No',
     Emailed: $('tEmailed').checked ? 'Yes' : 'No',
     'Connection Sent': $('tConn').checked ? 'Yes' : 'No',
-    Accepted: $('tAccepted').checked ? 'Yes' : 'No',
-    Bounced: $('tBounced').checked ? 'Yes' : 'No'
+    Accepted: $('tAccepted').checked ? 'Yes' : 'No'
   };
   if (!body.Name && !body.LinkedIn) {
     $('trackMsg').textContent = 'Name or LinkedIn URL — at least one is required';
@@ -799,8 +795,7 @@ async function loadReport(silent) {
       <div class="stat-card warn"><div class="stat-num">${dups.toLocaleString()}</div><div class="stat-label">Duplicate Emails</div></div>
       <div class="stat-card violet"><div class="stat-num">${r.tracker.total.toLocaleString()}</div><div class="stat-label">LinkedIn Tracked</div></div>
       <div class="stat-card"><div class="stat-num">${pending.toLocaleString()}</div><div class="stat-label">Pending (not sent)</div></div>
-      <div class="stat-card ok"><div class="stat-num">${(r.tracker.followed || 0).toLocaleString()}</div><div class="stat-label">Follow-ups Done</div></div>
-      <div class="stat-card warn"><div class="stat-num">${(r.tracker.bounced || 0).toLocaleString()}</div><div class="stat-label">Bounced Emails</div></div>`;
+      <div class="stat-card ok"><div class="stat-num">${(r.tracker.followed || 0).toLocaleString()}</div><div class="stat-label">Follow-ups Done</div></div>`;
 
     $('rpSummary').innerHTML =
       `<span class="ok-text">✔ Sent: <b>${sent.toLocaleString()}</b> leads</span>` +
@@ -873,7 +868,6 @@ function buildPrintSheet(label, stats) {
           <tr><td>Total Leads</td><td class="num">${stats.total.toLocaleString()}</td></tr>
           <tr><td>Total Sent Mails</td><td class="num">${stats.sent.toLocaleString()}</td></tr>
           <tr><td>Follow-ups Done</td><td class="num">${(stats.followed || 0).toLocaleString()}</td></tr>
-          <tr><td>Bounced Emails</td><td class="num">${(stats.bounced || 0).toLocaleString()}</td></tr>
           <tr><td>Duplicate Emails</td><td class="num">${stats.dups.toLocaleString()}</td></tr>
           <tr><td>LinkedIn Tracked</td><td class="num">${stats.linkedin.toLocaleString()}</td></tr>
         </table>
@@ -896,7 +890,6 @@ function fillPrintSheet(getStats) {
     total, sent, dups: lastReport.sheet.duplicateRows,
     linkedin: lastReport.tracker.total,
     followed: lastReport.tracker.followed || 0,
-    bounced: lastReport.tracker.bounced || 0,
     pending: Math.max(0, total - sent)
   }, getStats || {});
   $('printArea').innerHTML = buildPrintSheet(rangeLabel, stats);
@@ -974,7 +967,6 @@ function fillWeekPrintSheet(w) {
     total: w.total, sent: w.sent, dups: w.duplicates,
     linkedin: w.linkedin,
     followed: lastReport && lastReport.tracker ? lastReport.tracker.followed : 0,
-    bounced: lastReport && lastReport.tracker ? lastReport.tracker.bounced : 0,
     pending: w.pending
   });
 }
