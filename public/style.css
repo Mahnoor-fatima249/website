@@ -287,10 +287,11 @@ td a { color: var(--brand-link); text-decoration: none; font-weight: 600; word-b
 td a:hover { text-decoration: underline; }
 /* Sheet ke dynamically added columns — lamba text truncate ho jaye */
 .lead-extra { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* LinkedIn tracker ke Notes — chhota sa note-box jaisa */
+/* LinkedIn tracker ke Notes — chaura flat note-box (lamba/tall nahi) */
 .note-box {
   display: inline-block;
-  max-width: 260px;
+  width: 460px;
+  max-width: 100%;
   background: var(--brand-soft);
   border: 1px solid var(--line);
   border-left: 3px solid var(--brand);
