@@ -526,14 +526,13 @@ function renderLeads() {
       rest.map(h => `<th>${esc(h)}</th>`).join('');
   }
 
-  const prioTds = h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`;
   $('leadsBody').innerHTML = slice.map(l => `
     <tr>
       <td class="cell-muted">${esc(l.id)}</td>
       <td><b>${esc(l.Name)}</b>${l.Website ? `<br><a href="${esc(l.Website)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.Website.replace(/^https?:\/\//, '').slice(0, 40))}</a>` : ''}</td>
       <td>${l.Email ? `<a href="mailto:${esc(l.Email)}">${esc(l.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Phone) || '-'}</td>
-      ${prio.map(h => prioTds(h)).join('')}
+      ${prio.map(h => `<td class="cell-muted lead-extra" title="${esc(l[h])}">${esc(l[h]) || '-'}</td>`).join('')}
       <td>${l.LinkedIn ? `<a href="${esc(normUrl(l.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
       <td><span class="badge shiftb ${l.Shift === 'Day' ? 'dayb' : l.Shift === 'Night' ? 'nightb' : ''}">${esc(l.Shift)}</span></td>
       <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
