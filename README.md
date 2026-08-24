@@ -27,7 +27,45 @@ Ye website aapki **scraper wali Google Sheet** se data parhti hai aur team ka Li
 - Har week ke sath **Print** button hai — print me sirf saaf saaf ye likha aata hai:
   `WEEKLY REPORT` → `NEXE AGENT` → dates → Total Leads / Sent / Duplicates / LinkedIn → summary.
 
-Login: pehle **4 log** register kar sakte hain (apna password khud banate hain), uske baad registration band.
+Login: limited seats (default **12**, `.env`/ENV me `MAX_USERS` se control hota hai). Pehle aane wale apna account khud bana lete hain, seats full hone par registration band.
+
+---
+
+## 🚀 FREE VERCEL DEPLOYMENT (10–12 log ke liye)
+
+Website **Node.js** me hi Vercel par free chalti hai — Python ki zaroorat nahi.
+Data kahin local file me nahi rehta: users, tracker aur weekly archive sab
+**Google Sheet ke hidden tabs** (`_Users`, `_WeeklyReports`, `LinkedIn Tracker`)
+me save hote hain, is liye serverless par bhi sab safe rehta hai.
+
+### Step 1 — Code GitHub par dalein
+```
+git add .
+git commit -m "Vercel deploy"
+git push
+```
+(`.env`, `credentials/`, `data/` folder push na karein — ye secrets hain.)
+
+### Step 2 — Vercel par import karein
+1. https://vercel.com → GitHub se login → **Add New → Project**
+2. Ye repository import karein (framework: **Other**)
+3. **Environment Variables** me ye add karein:
+
+| Key | Value |
+|---|---|
+| `SHEET_ID` | Apni sheet ki ID (URL wali) |
+| `SCRAPE_TABS` | `nexe-agent day time august,nexe-agent night time august` |
+| `TRACKER_TAB` | `LinkedIn Tracker` |
+| `MAX_USERS` | `12` |
+| `GOOGLE_CREDENTIALS_B64` | Service-account JSON ka base64 (`credentials/env-values.txt` me ready hai) |
+| `SESSION_SECRET` | Koi lamba random text (e.g. 40+ characters) |
+
+4. **Deploy** dabayein — 1-2 minute me website live: `https://aapka-project.vercel.app`
+
+### Notes
+- Local jaisa hi chalta rahega: `START WEBSITE.bat` / `node server.js`.
+- Vercel par har naya scrape tab `.env` ki tarah **Vercel env** me `SCRAPE_TABS` update kar ke **Redeploy** karna hota hai (server restart ki zaroorat nahi).
+- Free tier (Hobby) 10–12 users ke liye kaafi hai; limits me rehne ke liye live-sync 30 sec par hai.
 
 ---
 
@@ -99,7 +137,8 @@ Aapke paas scraper ke sath service account ka JSON already hai:
 
 | File/Folder | Kaam |
 |---|---|
-| `server.js` | Website ka server |
+| `server.js` + `core.js` | Website ka server (core = puri app, Vercel bhi yehi use karta hai) |
+| `api/index.js` + `vercel.json` | Vercel serverless entry + config |
 | `public/` | Design (HTML/CSS/JS) |
 | `sheets.js` | Google Sheet connector (scraped = read-only, tracker = alag tab) |
 | `data/users.json` | 4 logon ke usernames + encrypted passwords |

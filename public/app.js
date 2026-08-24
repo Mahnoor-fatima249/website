@@ -38,13 +38,62 @@ function markSync() {
   $('lastSync').textContent = 'Updated ' + new Date().toLocaleTimeString();
 }
 
+/* ============ THEME (dark/light) ============ */
+const THEME_KEY = 'lm-theme';
+
+function currentTheme() {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(t, rerenderChartsToo) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
+  const btn = $('themeBtn');
+  if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  if (rerenderChartsToo) rerenderCharts();
+}
+applyTheme(currentTheme(), false);
+$('themeBtn').onclick = () => applyTheme(currentTheme() === 'dark' ? 'light' : 'dark', true);
+
+/* ============ CHARTS (Chart.js) ============ */
+const charts = {};
+
+function chartPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = n => cs.getPropertyValue(n).trim();
+  return {
+    muted: v('--muted'), grid: v('--chart-grid'), card: v('--card'),
+    brand: '#06b6d4', blue: '#3b82f6', violet: '#8b5cf6',
+    ok: '#10b981', warn: '#f59e0b', danger: '#f43f5e', slate: '#64748b'
+  };
+}
+
+function mountChart(id, cfg) {
+  if (typeof Chart === 'undefined') return;
+  const el = $(id);
+  if (!el || el.closest('.hidden')) return;
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const p = chartPalette();
+  Chart.defaults.color = p.muted;
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false }, cfg.options);
+  charts[id] = new Chart(el.getContext('2d'), cfg);
+}
+
+function rerenderCharts() {
+  renderDailyChart();
+  renderStatusChart();
+  renderReportChart();
+}
+
 /* ============ state ============ */
 const state = {
   user: null,
   view: 'overview',
   leads: [], page: 1, pageSize: 50,
   tracker: [], trackMineOnly: true,
-  editingTrackId: null, confirmAction: null
+  editingTrackId: null, confirmAction: null,
+  chartData: { daily: null, status: null, report: null }
 };
 
 /* ============ auth view ============ */
@@ -213,6 +262,11 @@ async function loadStats(silent) {
     $('shiftChips').innerHTML = chipHtml(s.shiftCounts || []);
     $('categoryChips').innerHTML = chipHtml(s.topCategories);
 
+    state.chartData.status = s.statusCounts || [];
+    $('statusChartEmpty').classList.add('hidden');
+    renderStatusChart();
+    loadDailyChart();
+
     if (s.dupGroups.length) {
       $('dupEmpty').classList.add('hidden');
       $('dupBody').innerHTML = s.dupGroups.map(g => `
@@ -295,6 +349,125 @@ $('rngMonth').onclick = () => {
 $('rngClear').onclick = () => {
   $('rngFrom').value = ''; $('rngTo').value = ''; $('rangeResult').innerHTML = '';
 };
+
+/* ---------- CHART RENDERERS ---------- */
+async function loadDailyChart() {
+  try {
+    const to = new Date(), from = new Date();
+    from.setDate(from.getDate() - 13);
+    const r = await api(`/api/range?from=${isoOf(from)}&to=${isoOf(to)}`);
+    state.chartData.daily = r.days || [];
+    const anyData = (r.days || []).some(d => d.total > 0);
+    $('dailyChartEmpty').classList.toggle('hidden', anyData);
+    renderDailyChart();
+  } catch {}
+}
+
+function renderDailyChart() {
+  const days = state.chartData.daily;
+  if (!days) return;
+  const map = new Map(days.map(d => [d.date, d]));
+  const labels = [], totals = [], sents = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const rec = map.get(isoOf(d)) || { total: 0, sent: 0 };
+    labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    totals.push(rec.total);
+    sents.push(rec.sent);
+  }
+  const p = chartPalette();
+  mountChart('dailyChart', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Leads', data: totals, backgroundColor: p.blue + 'd9', hoverBackgroundColor: p.blue, borderRadius: 5, maxBarThickness: 20 },
+        { label: 'Sent', data: sents, backgroundColor: p.ok + 'd9', hoverBackgroundColor: p.ok, borderRadius: 5, maxBarThickness: 20 }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 8 } },
+        y: { beginAtZero: true, grid: { color: p.grid }, ticks: { precision: 0 } }
+      }
+    }
+  });
+}
+
+function renderStatusChart() {
+  const counts = state.chartData.status;
+  if (!counts) return;
+  const top = counts.slice(0, 6);
+  const otherSum = counts.slice(6).reduce((a, x) => a + x.count, 0);
+  const rows = otherSum > 0 ? top.concat([{ name: 'Other', count: otherSum }]) : top;
+  $('statusChartEmpty').classList.toggle('hidden', rows.length > 0);
+  if (!rows.length) return;
+  const p = chartPalette();
+  const colors = [p.brand, p.violet, p.ok, p.warn, p.danger, p.blue, p.slate];
+  mountChart('statusChart', {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(x => x.name),
+      datasets: [{
+        data: rows.map(x => x.count),
+        backgroundColor: colors.map(c => c + 'e6'),
+        borderColor: p.card, borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      cutout: '58%',
+      plugins: { legend: { position: 'right', labels: { boxWidth: 10, usePointStyle: true } } }
+    }
+  });
+}
+
+function renderReportChart() {
+  const d = state.chartData.report;
+  if (!d) return;
+  const p = chartPalette();
+  mountChart('reportChart', {
+    type: 'bar',
+    data: {
+      labels: ['✅ Sent', '⏳ Pending'],
+      datasets: [{
+        data: [d.sent, d.pending],
+        backgroundColor: [p.ok + 'e6', p.danger + 'e6'],
+        borderRadius: 10, maxBarThickness: 64
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: p.grid }, ticks: { precision: 0 } },
+        y: { grid: { display: false }, ticks: { font: { size: 14, weight: '600' } } }
+      }
+    }
+  });
+}
+
+/* ---------- TEAM LEADERBOARD ---------- */
+function renderLeaderboard(perUser) {
+  const board = [...perUser].sort((a, b) => b.added - a.added || b.emailed - a.emailed || b.followed - a.followed);
+  const medals = ['🥇', '🥈', '🥉'];
+  $('lbEmpty').classList.toggle('hidden', board.length > 0);
+  $('leaderboard').innerHTML = board.map((u, i) => `
+    <div class="lb-card ${i === 0 ? 'gold' : ''}">
+      <div class="lb-rank ${medals[i] ? '' : 'num'}">${medals[i] || '#' + (i + 1)}</div>
+      <div class="lb-ava">${esc(String(u.name || '?').charAt(0).toUpperCase())}</div>
+      <div class="lb-info">
+        <div class="lb-name">${esc(u.name)}</div>
+        <div class="lb-stats">
+          <span><b>${u.added}</b> entries</span>
+          <span>✉️ <b>${u.emailed}</b> emails</span>
+          <span>👥 <b>${u.followed}</b> followed</span>
+          ${u.bounced ? `<span class="lb-bad">⚠️ <b>${u.bounced}</b> bounced</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
 
 /* ============ LEADS (READ ONLY + PAGINATION) ============ */
 async function loadLeads(silent) {
@@ -600,6 +773,10 @@ async function loadReport(silent) {
       `<span class="sep">•</span>` +
       `<span class="pend-text">✘ Not sent yet: <b>${pending.toLocaleString()}</b> persons</span>`;
 
+    state.chartData.report = { sent, pending };
+    renderReportChart();
+    renderLeaderboard(r.perUser || []);
+
     /* ---- weeks table ---- */
     if (lastWeeks.length) {
       $('weeksEmpty').classList.add('hidden');
@@ -646,26 +823,32 @@ async function loadReport(silent) {
   }
 }
 
-/* ---- printing: screen pe hidden area print me dikhta hai ---- */
+/* ---- printing: screen pe hidden area print me dikhta hai ----
+   Background watermark = Nexe Agent logo 40% opacity,
+   Footer credit = Team Mahnoor Fatima & Sana Shakeel */
 function buildPrintSheet(label, stats) {
   return `
     <div class="pr-sheet">
-      <div class="pr-logo-wrap"><img src="/logo.png" class="pr-logo" alt="Nexe Agent"></div>
-      <div class="pr-title">Weekly Report</div>
-      <div class="pr-sub">Nexe Agent</div>
-      <div class="pr-range">${esc(label)}</div>
-      <table class="pr-table">
-        <tr><td>Total Leads</td><td class="num">${stats.total.toLocaleString()}</td></tr>
-        <tr><td>Total Sent Mails</td><td class="num">${stats.sent.toLocaleString()}</td></tr>
-        <tr><td>Follow-ups Done</td><td class="num">${(stats.followed || 0).toLocaleString()}</td></tr>
-        <tr><td>Bounced Emails</td><td class="num">${(stats.bounced || 0).toLocaleString()}</td></tr>
-        <tr><td>Duplicate Emails</td><td class="num">${stats.dups.toLocaleString()}</td></tr>
-        <tr><td>LinkedIn Tracked</td><td class="num">${stats.linkedin.toLocaleString()}</td></tr>
-      </table>
-      <div class="pr-summary">
-        Sent: <b>${stats.sent.toLocaleString()}</b> &nbsp;|&nbsp; Not sent yet: <b>${stats.pending.toLocaleString()}</b> persons
+      <img src="/logo.png" class="pr-mark" alt="">
+      <div class="pr-content">
+        <div class="pr-logo-wrap"><img src="/logo.png" class="pr-logo" alt="Nexe Agent"></div>
+        <div class="pr-title">Weekly Report</div>
+        <div class="pr-sub">Nexe Agent</div>
+        <div class="pr-range">${esc(label)}</div>
+        <table class="pr-table">
+          <tr><td>Total Leads</td><td class="num">${stats.total.toLocaleString()}</td></tr>
+          <tr><td>Total Sent Mails</td><td class="num">${stats.sent.toLocaleString()}</td></tr>
+          <tr><td>Follow-ups Done</td><td class="num">${(stats.followed || 0).toLocaleString()}</td></tr>
+          <tr><td>Bounced Emails</td><td class="num">${(stats.bounced || 0).toLocaleString()}</td></tr>
+          <tr><td>Duplicate Emails</td><td class="num">${stats.dups.toLocaleString()}</td></tr>
+          <tr><td>LinkedIn Tracked</td><td class="num">${stats.linkedin.toLocaleString()}</td></tr>
+        </table>
+        <div class="pr-summary">
+          Sent: <b>${stats.sent.toLocaleString()}</b> &nbsp;|&nbsp; Not sent yet: <b>${stats.pending.toLocaleString()}</b> persons
+        </div>
+        <div class="pr-team">Team Mahnoor Fatima &amp; Sana Shakeel<div class="pr-team-sub">Nexe Agent</div></div>
+        <div class="pr-foot">Generated: ${new Date().toLocaleString()} • Lead Manager</div>
       </div>
-      <div class="pr-foot">Generated: ${new Date().toLocaleString()} • Lead Manager</div>
     </div>`;
 }
 
@@ -726,6 +909,30 @@ $('pngBtn').onclick = async () => {
   if (!lastReport) return;
   if (!fillPrintSheet(null)) return;
   await capturePng('weekly-report-' + new Date().toISOString().slice(0, 10) + '.png');
+};
+
+/* ---- WhatsApp share ---- */
+$('waBtn').onclick = () => {
+  if (!lastReport) { toast('Report abhi load nahi hui — thori dair baad try karein', 'err'); return; }
+  const total = lastReport.sheet.total;
+  const sent = lastWeeks.reduce((a, x) => a + x.sent, 0);
+  const pending = Math.max(0, total - sent);
+  const rangeLabel = (state.lastStats && state.lastStats.dateRange && state.lastStats.dateRange.label)
+    || (lastWeeks.length ? `${lastWeeks[lastWeeks.length - 1].label.split('–')[0].trim()} – ${lastWeeks[0].label.split('–')[1].trim()}` : 'All time');
+  const lines = [
+    '📊 *NEXE AGENT — WEEKLY REPORT*',
+    '',
+    `📅 Range: ${rangeLabel}`,
+    `👥 Total Leads: *${total.toLocaleString()}*`,
+    `✅ Emails Sent: *${sent.toLocaleString()}*`,
+    `⏳ Pending: *${pending.toLocaleString()}*`,
+    `🔁 Duplicate Emails: *${lastReport.sheet.duplicateRows.toLocaleString()}*`,
+    `🔗 LinkedIn Tracked: *${lastReport.tracker.total.toLocaleString()}*`,
+    lastReport.tracker.scrAvg != null ? `⭐ Average SCR: *${lastReport.tracker.scrAvg}*` : '',
+    '',
+    '_Team Mahnoor Fatima & Sana Shakeel_'
+  ].filter(Boolean);
+  window.open('https://wa.me/?text=' + encodeURIComponent(lines.join('\n')), '_blank', 'noopener');
 };
 
 function fillWeekPrintSheet(w) {

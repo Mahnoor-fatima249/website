@@ -22,8 +22,12 @@ function load() {
 }
 
 function save(db) {
-  ensureDir();
-  fs.writeFileSync(FILE, JSON.stringify(db, null, 2));
+  try {
+    ensureDir();
+    fs.writeFileSync(FILE, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.warn('[localstore] File write skip (read-only FS?):', err.message);
+  }
 }
 
 async function listLeads() {

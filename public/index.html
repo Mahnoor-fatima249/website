@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lead Manager</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('lm-theme') || 'dark'; } catch (e) {}</script>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -45,7 +46,7 @@
       <p id="registerMsg" class="form-msg error"></p>
     </form>
 
-    <p class="auth-note">Only the first 4 people can register. After that, registration closes.</p>
+    <p class="auth-note">Seats limited hain — saari seats full hone par registration khud band ho jata hai.</p>
   </div>
 </div>
 
@@ -64,6 +65,7 @@
       <button id="navReport" class="nav-btn">Report</button>
     </nav>
     <div class="user-chip">
+      <button id="themeBtn" class="theme-btn" title="Dark / Light mode badlein">☀️</button>
       <span id="lastSync" class="last-sync"></span>
       <span id="userName" class="user-name"></span>
       <button id="logoutBtn" class="btn btn-top-ghost btn-sm">Logout</button>
@@ -84,6 +86,19 @@
       <div class="banner hidden" id="modeBanner"></div>
 
       <div class="stats-grid" id="overviewStats"></div>
+
+      <div class="two-col" style="margin-bottom:16px">
+        <div class="card pad-card">
+          <h3 class="sec-title">📈 Rozana Leads — Pichle 14 Din</h3>
+          <div class="chart-box"><canvas id="dailyChart"></canvas></div>
+          <div id="dailyChartEmpty" class="empty hidden"><b>Koi dated lead nahi mili</b></div>
+        </div>
+        <div class="card pad-card">
+          <h3 class="sec-title">🧭 Status Split</h3>
+          <div class="chart-box"><canvas id="statusChart"></canvas></div>
+          <div id="statusChartEmpty" class="empty hidden"><b>No status data yet</b></div>
+        </div>
+      </div>
 
       <div class="card pad-card no-print" style="margin-top:16px">
         <h3 class="sec-title">📅 Date Range — Kitni Leads Kis Din</h3>
@@ -185,6 +200,7 @@
         <h2>Work Report</h2>
         <div>
           <button id="reportRefresh" class="btn btn-ghost">Refresh</button>
+          <button id="waBtn" class="btn btn-wa">Share WhatsApp</button>
           <button id="printBtn" class="btn btn-primary">Print / Save PDF</button>
 <button id="pngBtn" class="btn btn-ghost">Download PNG</button>
         </div>
@@ -200,6 +216,15 @@
         <div class="stats-grid rp-stats" id="rpStats"></div>
 
         <p class="rp-summary" id="rpSummary"></p>
+
+        <h3 class="sec-title">🏆 Team Leaderboard
+          <span class="cell-muted" style="font-size:12.5px;font-weight:400">— sab members ki ranking (entries, emails, follow-ups)</span>
+        </h3>
+        <div id="leaderboard" class="lb-grid"></div>
+        <div class="empty hidden" id="lbEmpty" style="padding:24px">No tracking data yet</div>
+
+        <h3 class="sec-title">📊 Sent vs Pending</h3>
+        <div class="chart-box tall"><canvas id="reportChart"></canvas></div>
 
         <h3 class="sec-title">Team Performance</h3>
         <table class="leads-table">
@@ -278,6 +303,7 @@
 
 <div id="toastWrap"></div>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

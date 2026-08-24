@@ -10,7 +10,7 @@ const SECRET_FILE = path.join(DATA_DIR, 'secret.txt');
 
 function maxUsers() {
   const n = parseInt(process.env.MAX_USERS, 10);
-  return Number.isFinite(n) && n > 0 ? n : 4;
+  return Number.isFinite(n) && n > 0 ? n : 12;
 }
 
 function ensureDataDir() {
@@ -27,8 +27,12 @@ function readLocalUsers() {
 }
 
 function writeLocalUsers(users) {
-  ensureDataDir();
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  try {
+    ensureDataDir();
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  } catch (err) {
+    console.warn('[users] File write skip (read-only FS?):', err.message);
+  }
 }
 
 /* Cloud (sheet ke _Users tab) available ho to wahan se, warnah local file */
@@ -72,17 +76,18 @@ async function syncCloud() {
   return true;
 }
 
-/* Render par SESSION_SECRET env set hota hai; local pe file me generate/store */
+/* SESSION_SECRET env (cloud) → data/secret.txt (local) → deterministic
+   fallback (serverless cold-starts ke darmiyan stable rehta hai) */
 function getSessionSecret() {
   const envSecret = (process.env.SESSION_SECRET || '').trim();
   if (envSecret) return envSecret;
-  ensureDataDir();
   try {
     const s = fs.readFileSync(SECRET_FILE, 'utf8').trim();
     if (s) return s;
   } catch {}
-  const secret = crypto.randomBytes(32).toString('hex');
-  fs.writeFileSync(SECRET_FILE, secret);
+  const seed = ['lead-manager', process.env.SHEET_ID || '', (process.env.GOOGLE_CREDENTIALS_B64 || '').slice(0, 80)].join('|');
+  const secret = crypto.createHash('sha256').update(seed).digest('hex');
+  try { ensureDataDir(); fs.writeFileSync(SECRET_FILE, secret); } catch {}
   return secret;
 }
 
