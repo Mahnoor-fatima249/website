@@ -984,9 +984,9 @@ async function loadReport(silent) {
 function buildPrintSheet(label, stats) {
   return `
     <div class="pr-sheet">
-      <img src="/logo.png" class="pr-mark" alt="">
+      <img src="/logo.svg" class="pr-mark" alt="">
       <div class="pr-content">
-        <div class="pr-logo-wrap"><img src="/logo.png" class="pr-logo" alt="Nexe Agent"></div>
+        <div class="pr-logo-wrap"><img src="/logo.svg" class="pr-logo" alt="Mahnoor — Nexe Agent"></div>
         <div class="pr-title">Weekly Report</div>
         <div class="pr-sub">Nexe Agent</div>
         <div class="pr-range">${esc(label)}</div>

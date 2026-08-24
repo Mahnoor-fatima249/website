@@ -88,6 +88,10 @@ body {
 
 ::selection { background: rgba(139, 92, 246, .35); }
 
+/* Mahnoor brand logos */
+.auth-logo { width: min(320px, 78vw); height: auto; display: block; margin: 0 auto 6px; }
+.topbar-icon { width: 30px; height: 30px; border-radius: 8px; display: inline-block; vertical-align: -7px; margin-right: 2px; }
+
 .hidden { display: none !important; }
 
 /* ---------- BRAND ---------- */
