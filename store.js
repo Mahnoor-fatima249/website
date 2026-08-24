@@ -33,5 +33,8 @@ module.exports = {
   trackerList: (...a) => backend.trackerList(...a),
   trackerAdd: (...a) => backend.trackerAdd(...a),
   trackerUpdate: (...a) => backend.trackerUpdate(...a),
-  trackerDelete: (...a) => backend.trackerDelete(...a)
+  trackerDelete: (...a) => backend.trackerDelete(...a),
+  dailyList: (...a) => backend.dailyList ? backend.dailyList(...a) : [],
+  dailyAdd: (...a) => backend.dailyAdd(...a),
+  dailyDelete: (...a) => backend.dailyDelete(...a)
 };

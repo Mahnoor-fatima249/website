@@ -213,6 +213,7 @@ function refreshView(silent) {
   else if (state.view === 'leads') loadLeads(silent);
   else if (state.view === 'linkedin') loadTracker(silent);
   else if (state.view === 'report') loadReport(silent);
+  else if (state.view === 'daily') loadDaily(silent);
 }
 
 /* ============ navigation ============ */
@@ -221,6 +222,7 @@ const VIEWS = {
   leads: { nav: 'navLeads', sec: 'leadsView' },
   linkedin: { nav: 'navLinkedin', sec: 'linkedinView' },
   report: { nav: 'navReport', sec: 'reportView' },
+  daily: { nav: 'navDaily', sec: 'dailyView' },
   help: { nav: 'navHelp', sec: 'helpView' }
 };
 
@@ -238,6 +240,7 @@ function switchView(v) {
   $(VIEWS[v].sec).classList.remove('hidden');
   if (v === 'overview') loadStats();
   if (v === 'report') loadReport();
+  if (v === 'daily') { $('dlDate').value = $('dlDate').value || new Date().toISOString().slice(0, 10); loadDaily(); }
 }
 
 /* ============ OVERVIEW / STATS ============ */
@@ -900,6 +903,104 @@ $('confirmYes').onclick = async () => {
   if (state.confirmAction) await state.confirmAction();
   state.confirmAction = null;
 };
+
+/* ============ DAILY OUTREACH LOG ============ */
+async function loadDaily(silent) {
+  try {
+    const r = await api('/api/daily');
+    state.dailyEntries = r.entries || [];
+    markSync();
+    renderDaily();
+  } catch (err) {
+    if (!silent) toast('Daily log load nahi hua: ' + err.message, 'err');
+  }
+}
+
+function renderDaily() {
+  const all = state.dailyEntries || [];
+
+  /* month dropdown */
+  const months = [...new Set(all.map(e => String(e.Date || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+  const sel = $('dailyMonth');
+  const cur = sel.value || 'all';
+  sel.innerHTML = '<option value="all">All Time</option>' + months.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  sel.value = months.includes(cur) ? cur : 'all';
+  const rows = sel.value === 'all' ? all : all.filter(e => String(e.Date || '').slice(0, 7) === sel.value);
+
+  const sum = k => rows.reduce((a, e) => a + (Number(e[k]) || 0), 0);
+  $('dailyStats').innerHTML = `
+    <div class="stat-card brand"><div class="stat-num">${rows.length}</div><div class="stat-label">Entries</div></div>
+    <div class="stat-card ok"><div class="stat-num">${sum('sent').toLocaleString()}</div><div class="stat-label">✉️ Emails Sent</div></div>
+    <div class="stat-card warn"><div class="stat-num">${sum('bounced').toLocaleString()}</div><div class="stat-label">↩️ Bounced</div></div>
+    <div class="stat-card violet"><div class="stat-num">${sum('fuSent').toLocaleString()}</div><div class="stat-label">🔁 Follow-ups Sent</div></div>
+    <div class="stat-card warn"><div class="stat-num">${sum('fuBounced').toLocaleString()}</div><div class="stat-label">🔁 FU Bounced</div></div>
+    <div class="stat-card"><div class="stat-num">${sum('respAuto').toLocaleString()}</div><div class="stat-label">🤖 Auto Replies</div></div>
+    <div class="stat-card ok"><div class="stat-num">${sum('respGenuine').toLocaleString()}</div><div class="stat-label">💬 Genuine Replies</div></div>
+    <div class="stat-card brand"><div class="stat-num">${sum('liOutreach').toLocaleString()}</div><div class="stat-label">🔗 LinkedIn Outreach</div></div>
+    <div class="stat-card violet"><div class="stat-num">${sum('liResponses').toLocaleString()}</div><div class="stat-label">🔗 LinkedIn Responses</div></div>`;
+
+  const sorted = [...rows].sort((a, b) =>
+    String(b.Date || '').localeCompare(String(a.Date || '')) ||
+    (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0));
+  const me = String((state.user && state.user.name) || '').trim().toLowerCase();
+  $('dailyEmpty').classList.toggle('hidden', !!sorted.length);
+  $('dailyBody').innerHTML = sorted.map(e => {
+    const mine = String(e.AddedBy || '').trim().toLowerCase() === me;
+    return `<tr>
+      <td><b>${esc(e.Date)}</b></td>
+      <td>${esc(e.AddedBy || '—')}</td>
+      <td>${e.sent}</td><td>${e.bounced}</td><td>${e.fuSent}</td><td>${e.fuBounced}</td>
+      <td>${e.respAuto}</td><td>${e.respGenuine}</td><td>${e.liOutreach}</td><td>${e.liResponses}</td>
+      <td>${mine ? `<button class="icon-btn del-btn" title="Delete" data-deldaily="${esc(e.id)}" data-deldate="${esc(e.Date)}">🗑</button>` : ''}</td>
+    </tr>`;
+  }).join('');
+}
+
+$('dailyMonth').onchange = renderDaily;
+$('dailyRefresh').onclick = () => loadDaily();
+
+$('dailyForm').onsubmit = async ev => {
+  ev.preventDefault();
+  const msg = $('dailyMsg');
+  try {
+    await api('/api/daily', {
+      method: 'POST',
+      body: {
+        date: $('dlDate').value,
+        sent: $('dlSent').value,
+        bounced: $('dlBounced').value,
+        fuSent: $('dlFuSent').value,
+        fuBounced: $('dlFuBounced').value,
+        respAuto: $('dlRespAuto').value,
+        respGenuine: $('dlRespGen').value,
+        liOutreach: $('dlLiOut').value,
+        liResponses: $('dlLiResp').value
+      }
+    });
+    toast('Daily entry save ho gayi ✓', 'ok');
+    msg.textContent = '';
+    ['dlSent', 'dlBounced', 'dlFuSent', 'dlFuBounced', 'dlRespAuto', 'dlRespGen', 'dlLiOut', 'dlLiResp']
+      .forEach(id => { $(id).value = ''; });
+    loadDaily(true);
+  } catch (err) {
+    msg.style.color = 'var(--bad)';
+    msg.textContent = err.message;
+  }
+};
+
+$('dailyBody').addEventListener('click', ev => {
+  const btn = ev.target.closest('[data-deldaily]');
+  if (!btn) return;
+  askConfirm(`Ye ${btn.dataset.deldate} ki entry delete kar dein?`, async () => {
+    try {
+      await api(`/api/daily/${btn.dataset.deldaily}`, { method: 'DELETE' });
+      toast('Entry delete ho gayi', 'ok');
+      loadDaily(true);
+    } catch (err) {
+      toast(err.message, 'err');
+    }
+  });
+});
 
 /* ============ REPORT ============ */
 let lastReport = null, lastWeeks = [], currentWeekKey = null;

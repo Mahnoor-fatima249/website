@@ -85,4 +85,28 @@ async function trackerDelete(id) {
   return true;
 }
 
-module.exports = { name: 'local', init: async () => false, listLeads, trackerList, trackerAdd, trackerUpdate, trackerDelete };
+async function dailyList() {
+  return load().daily || [];
+}
+
+async function dailyAdd(d) {
+  const db = load();
+  db.seq = (db.seq || 0) + 1;
+  db.daily = db.daily || [];
+  const entry = { id: String(db.seq), ...d };
+  db.daily.push(entry);
+  save(db);
+  return entry;
+}
+
+async function dailyDelete(id) {
+  const db = load();
+  db.daily = db.daily || [];
+  const before = db.daily.length;
+  db.daily = db.daily.filter(x => String(x.id) !== String(id));
+  if (db.daily.length === before) throw new Error('Entry nahi mili');
+  save(db);
+  return true;
+}
+
+module.exports = { name: 'local', init: async () => false, listLeads, trackerList, trackerAdd, trackerUpdate, trackerDelete, dailyList, dailyAdd, dailyDelete };

@@ -132,7 +132,7 @@ app.get('/api/meta', requireLogin, (req, res) => {
 
 /* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
    is se pata chalta hai ke live site naye code par hai ya purani */
-const BUILD_TAG = '2026-08-25.15';
+const BUILD_TAG = '2026-08-25.16';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 
@@ -498,6 +498,61 @@ app.delete('/api/tracker/:id', requireLogin, async (req, res) => {
     if (!entry) return res.status(404).json({ error: 'Entry not found' });
     if (!canTouchEntry(entry, req)) return res.status(403).json({ error: 'Ye entry aapki nahi hai — sirf apni entries delete kar sakte hain' });
     await store.trackerDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/* ---------- DAILY OUTREACH LOG ---------- */
+const DAILY_FIELDS = ['sent', 'bounced', 'fuSent', 'fuBounced', 'respAuto', 'respGenuine', 'liOutreach', 'liResponses'];
+
+function dailyFields(body) {
+  const out = {};
+  let any = false;
+  for (const f of DAILY_FIELDS) {
+    let v = parseInt(body[f], 10);
+    if (!Number.isFinite(v) || v < 0) v = 0;
+    if (v > 100000) v = 100000;
+    out[f] = v;
+    if (v > 0) any = true;
+  }
+  if (!any) throw new Error('Kam az kam ek field me 0 se bara number dalen');
+  let date = String(body.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = new Date().toISOString().slice(0, 10);
+  out.Date = date;
+  return out;
+}
+
+app.get('/api/daily', requireLogin, async (req, res) => {
+  try {
+    const entries = await store.dailyList();
+    res.json({ entries });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not load daily log: ' + err.message });
+  }
+});
+
+app.post('/api/daily', requireLogin, async (req, res) => {
+  try {
+    const data = dailyFields(req.body);
+    data.AddedBy = req.session.user.name;
+    const entry = await store.dailyAdd(data);
+    res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/daily/:id', requireLogin, async (req, res) => {
+  try {
+    const list = await store.dailyList();
+    const entry = list.find(x => String(x.id) === String(req.params.id));
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+    const ab = String(entry.AddedBy || '').trim().toLowerCase();
+    const me = String(req.session.user.name || '').trim().toLowerCase();
+    if (ab && ab !== me) return res.status(403).json({ error: 'Ye entry aapki nahi hai — sirf apni entries delete kar sakte hain' });
+    await store.dailyDelete(req.params.id);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });

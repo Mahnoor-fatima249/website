@@ -316,6 +316,11 @@ td a:hover { text-decoration: underline; }
 .help-grid p { font-size: 13.5px; color: var(--muted); line-height: 1.65; margin-bottom: 9px; }
 .help-grid p:last-child { margin-bottom: 0; }
 .help-grid b { color: var(--ink); }
+
+/* Daily outreach form */
+.daily-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+.daily-form label { font-size: 12.5px; font-weight: 600; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.daily-form input { width: 100%; }
 /* LinkedIn tracker ke Notes — chaura flat note-box (lamba/tall nahi) */
 .note-box {
   display: inline-block;
