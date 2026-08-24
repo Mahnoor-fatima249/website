@@ -17,13 +17,17 @@ let lastInitError = null;   // Vercel diagnosis: connect na hone ki wajah
 
 let tabsInfo = [];          // [{title, colMap}]
 let scrapeCache = { data: null, at: 0 };
-const SCRAPE_TTL_MS = 15000;
+let scrapeFetchPromise = null;
+/* Quota-safe: Vercel free tier par Google sirf 60 reads/min deta hai.
+   Lambi TTL + single-flight dedup se reads kam se kam rakhe hain. */
+const SCRAPE_TTL_MS = 60000;
 
 let trackerTabTitle = null;
 let trackerNumericId = null;
 let trackerHeaders = [];
 let trackerCache = { data: null, at: 0 };
-const TRACKER_TTL_MS = 10000;
+let trackerFetchPromise = null;
+const TRACKER_TTL_MS = 30000;
 
 const TRACKER_TAB_DEFAULT = 'LinkedIn Tracker';
 const TRACKER_HEADERS = ['ID', 'Name', 'Email', 'LinkedIn URL', 'SCR', 'Followed', 'Emailed', 'Connection Sent', 'Accepted', 'Bounced', 'Notes', 'Added By', 'Date'];
@@ -149,39 +153,48 @@ async function fetchTabRows(title, minCols) {
   return res.data.values || [];
 }
 
+function fetchLeadsOnce() {
+  /* Single-flight: jitne bhi callers wait karein, sheet read SIRF EK dafa */
+  const p = (async () => {
+    const leads = [];
+    for (const info of tabsInfo) {
+      const maxCol = Math.max(...Object.values(info.colMap), 10);
+      const grid = await fetchTabRows(info.title, maxCol);
+      const shift = shiftLabel(info.title);
+
+      for (let i = 1; i < grid.length; i++) {
+        const arr = grid[i];
+        if (!arr || arr.every(c => c == null || String(c).trim() === '')) continue;
+        const v = c => (info.colMap[c] >= 0 && arr[info.colMap[c]] != null ? String(arr[info.colMap[c]]).trim() : '');
+        leads.push({
+          id: `${shift.replace(/\s/g, '')}-${i + 1}`,
+          Name: v('Name'),
+          Email: v('Email'),
+          Phone: v('Phone'),
+          LinkedIn: v('LinkedIn'),
+          Status: v('Status'),
+          Category: v('Category'),
+          Website: v('Website'),
+          Date: v('Date'),
+          Shift: shift,
+          Tab: info.title
+        });
+      }
+    }
+    scrapeCache = { data: leads, at: Date.now() };
+    return leads;
+  })();
+  return p.finally(() => { scrapeFetchPromise = null; });
+}
+
 async function listLeads(force = false) {
   if (!force && scrapeCache.data && Date.now() - scrapeCache.at < SCRAPE_TTL_MS) {
     return scrapeCache.data;
   }
-
-  const leads = [];
-  for (const info of tabsInfo) {
-    const maxCol = Math.max(...Object.values(info.colMap), 10);
-    const grid = await fetchTabRows(info.title, maxCol);
-    const shift = shiftLabel(info.title);
-
-    for (let i = 1; i < grid.length; i++) {
-      const arr = grid[i];
-      if (!arr || arr.every(c => c == null || String(c).trim() === '')) continue;
-      const v = c => (info.colMap[c] >= 0 && arr[info.colMap[c]] != null ? String(arr[info.colMap[c]]).trim() : '');
-      leads.push({
-        id: `${shift.replace(/\s/g, '')}-${i + 1}`,
-        Name: v('Name'),
-        Email: v('Email'),
-        Phone: v('Phone'),
-        LinkedIn: v('LinkedIn'),
-        Status: v('Status'),
-        Category: v('Category'),
-        Website: v('Website'),
-        Date: v('Date'),
-        Shift: shift,
-        Tab: info.title
-      });
-    }
-  }
-
-  scrapeCache = { data: leads, at: Date.now() };
-  return leads;
+  if (force) return fetchLeadsOnce();
+  if (scrapeFetchPromise) return scrapeFetchPromise;
+  scrapeFetchPromise = fetchLeadsOnce();
+  return scrapeFetchPromise;
 }
 
 /* ---------- LINKEDIN TRACKER TAB ---------- */
@@ -277,19 +290,29 @@ async function nextTrackerId(grid) {
   return max + 1;
 }
 
+function fetchTrackerOnce() {
+  const p = (async () => {
+    const grid = await fetchTrackerGrid();
+    const out = [];
+    for (let i = 1; i < grid.length; i++) {
+      const arr = grid[i];
+      if (!arr || arr.every(c => c == null || String(c).trim() === '')) continue;
+      out.push(tRowToLead(arr, i + 1));
+    }
+    trackerCache = { data: out, at: Date.now() };
+    return out;
+  })();
+  return p.finally(() => { trackerFetchPromise = null; });
+}
+
 async function trackerList(force = false) {
   if (!force && trackerCache.data && Date.now() - trackerCache.at < TRACKER_TTL_MS) {
     return trackerCache.data;
   }
-  const grid = await fetchTrackerGrid();
-  const out = [];
-  for (let i = 1; i < grid.length; i++) {
-    const arr = grid[i];
-    if (!arr || arr.every(c => c == null || String(c).trim() === '')) continue;
-    out.push(tRowToLead(arr, i + 1));
-  }
-  trackerCache = { data: out, at: Date.now() };
-  return out;
+  if (force) return fetchTrackerOnce();
+  if (trackerFetchPromise) return trackerFetchPromise;
+  trackerFetchPromise = fetchTrackerOnce();
+  return trackerFetchPromise;
 }
 
 function clearTrackerCache() { trackerCache = { data: null, at: 0 }; }

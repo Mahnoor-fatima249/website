@@ -226,10 +226,11 @@ async function saveWeeklyArchive(archive) {
   }
 }
 
-/* Week khatam hone ke baad uski report khud save ho jati hai */
+/* Week khatam hone ke baad uski report khud save ho jati hai.
+   Cached rows use karte hain — force read quota bachata hai. */
 async function archivePastWeeks() {
   try {
-    const rows = await getWeekRows(true);
+    const rows = await getWeekRows(false);
     const curKey = wkKey(new Date());
     const past = rows.filter(w => w.key < curKey);
     if (!past.length) return;

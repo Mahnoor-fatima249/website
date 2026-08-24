@@ -186,7 +186,8 @@ function enterApp(user) {
 
 /* ============ LIVE SYNC ============ */
 let liveTimer = null;
-const LIVE_INTERVAL_MS = 30000;
+/* 60 sec: Vercel free tier par Google Sheets ki read quota (60/min) safe rehti hai */
+const LIVE_INTERVAL_MS = 60000;
 
 function startLiveSync() {
   markSync();

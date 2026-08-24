@@ -125,8 +125,8 @@ Aapke paas scraper ke sath service account ka JSON already hai:
 
 ## Live Connection (Live Sync)
 
-- Website sheet se **har 30 second** baad khud refresh karti hai.
-- Scraper sheet me naya lead dalta hai → 30 sec ke andar website pe nazar aa jata hai.
+- Website sheet se **har 60 second** baad khud refresh karti hai (Google free quota ke andar rehne ke liye).
+- Scraper sheet me naya lead dalta hai → thori dair me website pe nazar aa jata hai.
 - Row delete hogi to website se bhi gayab ho jayegi.
 - Upar right corner **"LIVE" badge** aur "Updated HH:MM:SS" time iska proof hai.
 - Manual refresh ke liye har page pe Refresh button bhi hai.
