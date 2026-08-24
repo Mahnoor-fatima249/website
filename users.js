@@ -14,7 +14,10 @@ function maxUsers() {
 }
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  /* Vercel jaise read-only FS par mkdir fail ho sakta hai — crash na kare */
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch {}
 }
 
 function readLocalUsers() {

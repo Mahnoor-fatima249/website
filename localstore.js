@@ -9,7 +9,10 @@ const DATA_DIR = path.join(__dirname, 'data');
 const FILE = path.join(DATA_DIR, 'tracker.json');
 
 function ensureDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  /* Read-only FS (Vercel) par mkdir fail ho sakta hai — crash na kare */
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch {}
 }
 
 function load() {

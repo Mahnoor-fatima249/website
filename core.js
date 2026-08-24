@@ -49,7 +49,11 @@ function requireLogin(req, res, next) {
 /* ---------- AUTH ---------- */
 
 app.get('/api/auth/status', async (req, res) => {
-  res.json(await users.status());
+  try {
+    res.json(await users.status());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/register', async (req, res) => {
@@ -518,10 +522,24 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-/* Sheet init ek hi dafa (module load par — warm instance me reuse hota hai) */
-readyPromise = store.init().then(ok => ok).catch(err => {
-  console.warn('[storage] init fail:', err.message);
-  return false;
-});
+/* Sheet + cloud storage ek hi dafa init (module load par — warm instance
+   me reuse hota hai). Cloud (_Users/_WeeklyReports tabs) VERCEL PAR BHI
+   chahiye, is liye yahan server.js se shift kiya gaya hai. */
+readyPromise = store.init()
+  .then(async ok => {
+    try {
+      if (ok && await cloudstore.init()) {
+        await users.syncCloud();
+        console.log('[storage] Sheet-backed users/archive ready');
+      }
+    } catch (err) {
+      console.warn('[storage] Cloud users/archive setup skip:', err.message);
+    }
+    return ok;
+  })
+  .catch(err => {
+    console.warn('[storage] init fail:', err.message);
+    return false;
+  });
 
 module.exports = { app, readyPromise, maybeArchive, archivePastWeeks };

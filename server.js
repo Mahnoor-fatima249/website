@@ -3,7 +3,6 @@
 const os = require('os');
 const { app, readyPromise, maybeArchive } = require('./core');
 const users = require('./users');
-const cloudstore = require('./cloudstore');
 
 const PORT = process.env.PORT || 3001;
 
@@ -30,15 +29,6 @@ async function start() {
   });
 
   try { await readyPromise; } catch {}
-
-  /* Cloud storage: _Users/_WeeklyReports tabs + file-users ki migration */
-  try {
-    if (await cloudstore.init()) {
-      await users.syncCloud();
-    }
-  } catch (err) {
-    console.warn('[storage] Cloud users/archive setup skip:', err.message);
-  }
 
   try {
     const st = await users.status();
