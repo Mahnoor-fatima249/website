@@ -450,26 +450,6 @@ function renderReportChart() {
   });
 }
 
-/* ---------- TEAM LEADERBOARD ---------- */
-function renderLeaderboard(perUser) {
-  const board = [...perUser].sort((a, b) => b.added - a.added || b.emailed - a.emailed || b.followed - a.followed);
-  const medals = ['🥇', '🥈', '🥉'];
-  $('lbEmpty').classList.toggle('hidden', board.length > 0);
-  $('leaderboard').innerHTML = board.map((u, i) => `
-    <div class="lb-card ${i === 0 ? 'gold' : ''}">
-      <div class="lb-rank ${medals[i] ? '' : 'num'}">${medals[i] || '#' + (i + 1)}</div>
-      <div class="lb-ava">${esc(String(u.name || '?').charAt(0).toUpperCase())}</div>
-      <div class="lb-info">
-        <div class="lb-name">${esc(u.name)}</div>
-        <div class="lb-stats">
-          <span><b>${u.added}</b> entries</span>
-          <span>✉️ <b>${u.emailed}</b> emails</span>
-          <span>👥 <b>${u.followed}</b> followed</span>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
 /* ============ LEADS (READ ONLY + PAGINATION) ============ */
 async function loadLeads(silent) {
   try {
@@ -805,7 +785,6 @@ async function loadReport(silent) {
 
     state.chartData.report = { sent, pending };
     renderReportChart();
-    renderLeaderboard(r.perUser || []);
 
     /* ---- weeks table ---- */
     if (lastWeeks.length) {
