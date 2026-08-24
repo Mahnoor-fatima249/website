@@ -493,6 +493,9 @@ function filteredLeads() {
 /* Sheet ke naye columns jo website ke fixed layout me nahi hain */
 const LEAD_BASE_KEYS = ['id', 'Name', 'Email', 'Phone', 'LinkedIn', 'Status', 'Category', 'Website', 'Date', 'Shift', 'Tab'];
 
+/* Ye columns table ke SHURU me (Phone ke baad) dikhte hain taake scroll ki zaroorat na pare */
+const PRIORITY_COLS = ['Emails undelivered/bounced back', 'SENT-Follow up emails'];
+
 function leadExtraCols() {
   const extras = [];
   for (const l of state.leads) {
@@ -500,7 +503,8 @@ function leadExtraCols() {
       if (!LEAD_BASE_KEYS.includes(k) && !extras.includes(k) && String(k).trim()) extras.push(k);
     }
   }
-  return extras; /* koi limit nahi — jitne columns sheet me hon sab dikhenge (table scroll hoti hai) */
+  const prio = PRIORITY_COLS.filter(c => extras.includes(c));
+  return { prio, rest: extras.filter(k => !prio.includes(k)) };
 }
 
 function renderLeads() {
@@ -511,29 +515,31 @@ function renderLeads() {
   const slice = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
   $('leadCountInfo').textContent = `${rows.length.toLocaleString()} lead${rows.length === 1 ? '' : 's'} found`;
 
-  /* Dynamic columns: sheet ke naye columns table ke AKHIR me aayenge
-     (Status/Date ke baad) — bilkul sheet ki tarah "Status ke baad wale" columns */
-  const extraCols = leadExtraCols();
+  /* Priority columns Phone ke baad, baqi naye columns table ke akhir me */
+  const { prio, rest } = leadExtraCols();
   const theadTr = document.querySelector('#leadsView .leads-table thead tr');
   if (theadTr) {
     theadTr.innerHTML =
-      '<th>#</th><th>Business</th><th>Email</th><th>Phone</th><th>LinkedIn</th>' +
-      '<th>Shift</th><th>Status</th><th>Category</th><th>Date</th>' +
-      extraCols.map(h => `<th>${esc(h)}</th>`).join('');
+      '<th>#</th><th>Business</th><th>Email</th><th>Phone</th>' +
+      prio.map(h => `<th>${esc(h)}</th>`).join('') +
+      '<th>LinkedIn</th><th>Shift</th><th>Status</th><th>Category</th><th>Date</th>' +
+      rest.map(h => `<th>${esc(h)}</th>`).join('');
   }
 
+  const prioTds = h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`;
   $('leadsBody').innerHTML = slice.map(l => `
     <tr>
       <td class="cell-muted">${esc(l.id)}</td>
       <td><b>${esc(l.Name)}</b>${l.Website ? `<br><a href="${esc(l.Website)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.Website.replace(/^https?:\/\//, '').slice(0, 40))}</a>` : ''}</td>
       <td>${l.Email ? `<a href="mailto:${esc(l.Email)}">${esc(l.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Phone) || '-'}</td>
+      ${prio.map(h => prioTds(h)).join('')}
       <td>${l.LinkedIn ? `<a href="${esc(normUrl(l.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
       <td><span class="badge shiftb ${l.Shift === 'Day' ? 'dayb' : l.Shift === 'Night' ? 'nightb' : ''}">${esc(l.Shift)}</span></td>
       <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Category) || '-'}</td>
       <td class="cell-muted">${fmtDate(l.Date)}</td>
-      ${extraCols.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
+      ${rest.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
     </tr>`).join('');
 
   $('leadsEmpty').classList.toggle('hidden', rows.length > 0);
