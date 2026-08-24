@@ -97,7 +97,7 @@ app.get('/api/meta', requireLogin, (req, res) => {
 
 /* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
    is se pata chalta hai ke live site naye code par hai ya purani */
-const BUILD_TAG = '2026-08-24.7';
+const BUILD_TAG = '2026-08-24.8';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 

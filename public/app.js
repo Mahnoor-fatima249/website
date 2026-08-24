@@ -523,11 +523,12 @@ function renderLeads() {
       '<th>#</th><th>Business</th><th>Email</th><th>Phone</th>' +
       prio.map(h => `<th>${esc(h)}</th>`).join('') +
       '<th>LinkedIn</th><th>Shift</th><th>Status</th><th>Category</th><th>Date</th>' +
+      '<th class="no-print">Actions</th>' +
       rest.map(h => `<th>${esc(h)}</th>`).join('');
   }
 
   $('leadsBody').innerHTML = slice.map(l => `
-    <tr>
+    <tr data-id="${esc(l.id)}">
       <td class="cell-muted">${esc(l.id)}</td>
       <td><b>${esc(l.Name)}</b>${l.Website ? `<br><a href="${esc(l.Website)}" target="_blank" rel="noopener" style="font-size:12px">${esc(l.Website.replace(/^https?:\/\//, '').slice(0, 40))}</a>` : ''}</td>
       <td>${l.Email ? `<a href="mailto:${esc(l.Email)}">${esc(l.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
@@ -538,6 +539,10 @@ function renderLeads() {
       <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Category) || '-'}</td>
       <td class="cell-muted">${fmtDate(l.Date)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="mini-btn track-from-lead" title="Is lead ko LinkedIn tracker me add karo">+ Track</button>
+        <button class="mini-btn copy-outreach" title="Outreach message copy karo">✉ Copy</button>
+      </div></td>
       ${rest.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
     </tr>`).join('');
 
@@ -551,6 +556,57 @@ $('pgPrev').onclick = () => { if (state.page > 1) { state.page--; renderLeads();
 $('pgNext').onclick = () => { state.page++; renderLeads(); };
 ['leadSearch'].forEach(id => $(id).addEventListener('input', () => { state.page = 1; renderLeads(); }));
 ['statusFilter', 'shiftFilter'].forEach(id => $(id).addEventListener('change', () => { state.page = 1; renderLeads(); }));
+
+/* ---- Lead actions: + Track (prefilled tracker form) aur ✉ Copy (outreach msg) ---- */
+function outreachText(l) {
+  const me = (state.user && state.user.name) || 'Team Nexe Agent';
+  return `Hello ${l.Name || 'there'},
+
+I hope you're doing well! I came across your business${l.Category ? ` (${l.Category})` : ''} and was really impressed.
+
+We at Nexe Agent help businesses like yours grow through targeted email outreach and LinkedIn marketing — bringing you more customers without any extra effort on your side.
+
+Would you be open to a quick chat this week?
+
+Best regards,
+${me}
+Nexe Agent`;
+}
+
+async function copyText(txt) {
+  try {
+    await navigator.clipboard.writeText(txt);
+    return true;
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const done = document.execCommand('copy');
+      ta.remove();
+      return done;
+    } catch (e2) { return false; }
+  }
+}
+
+$('leadsBody').addEventListener('click', async e => {
+  const tb = e.target.closest('.track-from-lead');
+  const cb = e.target.closest('.copy-outreach');
+  if (!tb && !cb) return;
+  const tr = e.target.closest('tr');
+  const lead = state.leads.find(x => x.id === tr.dataset.id);
+  if (!lead) return;
+  if (tb) {
+    openTrackModal({ Name: lead.Name || '', Email: lead.Email || '', LinkedIn: lead.LinkedIn || '' });
+    toast('Lead se form fill ho gaya — bas details check karke Save karein', 'ok');
+  } else {
+    const ok = await copyText(outreachText(lead));
+    toast(ok ? 'Outreach message copy ho gaya ✓ — WhatsApp/Email me paste karein' : 'Copy nahi ho saka', ok ? 'ok' : 'err');
+  }
+});
 
 /* ============ LINKEDIN TRACKER ============ */
 function normUrl(u) {
@@ -691,11 +747,18 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
 });
 
-function openTrackModal(id) {
+function openTrackModal(src) {
   $('trackMsg').textContent = '';
-  const t = id ? state.tracker.find(x => String(x.id) === String(id)) : null;
-  state.editingTrackId = t ? t.id : null;
-  $('trackModalTitle').textContent = t ? `Edit Entry #${t.ID}` : 'New LinkedIn Lead';
+  let t = null, editing = false;
+  if (src && typeof src === 'object') {
+    /* Lead row ke "+ Track" button se prefill — nayi entry */
+    t = Object.assign({ Name: '', Email: '', LinkedIn: '', SCR: '', Notes: '', Followed: 'No', Emailed: 'No', 'Connection Sent': 'No', Accepted: 'No' }, src);
+  } else if (src) {
+    t = state.tracker.find(x => String(x.id) === String(src));
+    editing = !!t;
+  }
+  state.editingTrackId = editing && t ? t.id : null;
+  $('trackModalTitle').textContent = editing ? `Edit Entry #${t.ID}` : 'New LinkedIn Lead';
   $('tName').value = t ? t.Name : '';
   $('tEmail').value = t ? t.Email : '';
   $('tLinkedin').value = t ? t.LinkedIn : '';
