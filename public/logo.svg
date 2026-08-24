@@ -26,6 +26,5 @@
   <text x="92" y="140" font-family="Georgia, 'Playfair Display', 'Times New Roman', serif" font-size="86" font-weight="700" fill="#ffffff" text-anchor="middle">M</text>
 
   <!-- wordmark -->
-  <text x="196" y="106" font-family="Georgia, 'Playfair Display', 'Times New Roman', serif" font-size="68" font-style="italic" font-weight="700" fill="url(#word-g)">Mahnoor</text>
-  <text x="200" y="144" font-family="Verdana, Arial, sans-serif" font-size="15" letter-spacing="9" font-weight="700" fill="#9d97c4">NEXE AGENT</text>
+  <text x="196" y="122" font-family="Georgia, 'Playfair Display', 'Times New Roman', serif" font-size="72" font-style="italic" font-weight="700" fill="url(#word-g)">Mahnoor</text>
 </svg>
