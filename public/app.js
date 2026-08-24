@@ -173,6 +173,8 @@ function enterApp(user) {
   loadTracker();
 
   api('/api/meta').then(m => {
+    const bt = $('buildTag');
+    if (bt && m.build) bt.textContent = 'v' + m.build;
     if (m.mode !== 'google') {
       const b = $('modeBanner');
       b.classList.remove('hidden');

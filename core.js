@@ -92,8 +92,12 @@ let readyPromise = Promise.resolve();
 app.use('/api', (req, res, next) => readyPromise.then(() => next(), () => next()));
 
 app.get('/api/meta', requireLogin, (req, res) => {
-  res.json({ mode: store.mode(), readonly: true, reason: store.getInitError() });
+  res.json({ mode: store.mode(), readonly: true, reason: store.getInitError(), build: BUILD_TAG });
 });
+
+/* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
+   is se pata chalta hai ke live site naye code par hai ya purani */
+const BUILD_TAG = '2026-08-24.3';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 

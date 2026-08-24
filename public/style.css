@@ -225,6 +225,7 @@ textarea { resize: vertical; }
 .nav-btn.active { background: #fff; color: #0e7490; box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
 
 .user-chip { display: flex; align-items: center; gap: 12px; }
+.build-tag { font-size: 10.5px; color: var(--muted); opacity: .75; letter-spacing: .3px; }
 
 .main { padding: 26px 28px 60px; max-width: 1250px; margin: 0 auto; }
 
