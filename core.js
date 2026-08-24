@@ -132,7 +132,7 @@ app.get('/api/meta', requireLogin, (req, res) => {
 
 /* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
    is se pata chalta hai ke live site naye code par hai ya purani */
-const BUILD_TAG = '2026-08-25.14';
+const BUILD_TAG = '2026-08-25.15';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 
@@ -362,8 +362,18 @@ app.get('/api/stats', requireLogin, async (req, res) => {
 
     const sentFromSheet = leads.filter(isSentRow).length;
 
+    /* Follow-ups = "SENT-Follow up emails" jaise columns ki ghair-khali value */
+    let followUps = 0;
+    for (const l of leads) {
+      for (const k of Object.keys(l)) {
+        const v = String(l[k] == null ? '' : l[k]).trim();
+        if (/follow\s*up/i.test(k) && v && !/^no$/i.test(v)) { followUps++; break; }
+      }
+    }
+
     res.json({
       total,
+      followUps,
       sentFromSheet,
       notSent: total - sentFromSheet,
       uniqueEmails: byEmail.size,

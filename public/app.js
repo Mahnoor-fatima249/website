@@ -263,12 +263,17 @@ async function loadStats(silent) {
       <div class="stat-card warn"><div class="stat-num">${s.duplicateRows.toLocaleString()}</div><div class="stat-label">Duplicate Rows (${s.duplicatePercent}%)</div></div>
       <div class="stat-card"><div class="stat-num">${s.dupGroupCount.toLocaleString()}</div><div class="stat-label">Duplicated Email Types</div></div>
       <div class="stat-card"><div class="stat-num">${s.missingEmail.toLocaleString()}</div><div class="stat-label">Missing Email</div></div>`;
-    (s.shiftCounts || []).forEach(sc => {
+    const fuCard = `<div class="stat-card ok"><div class="stat-num">${(s.followUps || 0).toLocaleString()}</div><div class="stat-label">🔁 Total Follow-ups</div><div class="stat-sub">Follow up email sent</div></div>`;
+    const shiftCardEls = (s.shiftCounts || []).map(sc => {
       const low = sc.name.toLowerCase();
       const cls = low === 'day' ? 'ok' : low === 'night' ? 'violet' : 'brand';
       const lbl = (low === 'day' || low === 'night') ? sc.name + ' Time Leads' : sc.name + ' Leads';
-      cards += `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(lbl)}</div><div class="stat-sub">✅ ${sc.sent || 0} sent</div></div>`;
+      return `<div class="stat-card ${cls}"><div class="stat-num">${sc.count.toLocaleString()}</div><div class="stat-label">${esc(lbl)}</div><div class="stat-sub">✅ ${sc.sent || 0} sent</div></div>`;
     });
+    const nightIdx = (s.shiftCounts || []).findIndex(sc => sc.name.toLowerCase() === 'night');
+    if (nightIdx >= 0) shiftCardEls.splice(nightIdx + 1, 0, fuCard);
+    else shiftCardEls.push(fuCard);
+    cards += shiftCardEls.join('');
     $('overviewStats').innerHTML = cards;
 
     const chipHtml = arr => arr.length
