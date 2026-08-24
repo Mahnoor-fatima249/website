@@ -529,14 +529,15 @@ function renderLeads() {
   const slice = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
   $('leadCountInfo').textContent = `${rows.length.toLocaleString()} lead${rows.length === 1 ? '' : 's'} found`;
 
-  /* Dynamic columns: sheet me jo bhi naya column ho wo khud table me aa jata hai */
+  /* Dynamic columns: sheet ke naye columns table ke AKHIR me aayenge
+     (Status/Date ke baad) — bilkul sheet ki tarah "Status ke baad wale" columns */
   const extraCols = leadExtraCols();
   const theadTr = document.querySelector('#leadsView .leads-table thead tr');
   if (theadTr) {
     theadTr.innerHTML =
       '<th>#</th><th>Business</th><th>Email</th><th>Phone</th><th>LinkedIn</th>' +
-      extraCols.map(h => `<th>${esc(h)}</th>`).join('') +
-      '<th>Shift</th><th>Status</th><th>Category</th><th>Date</th>';
+      '<th>Shift</th><th>Status</th><th>Category</th><th>Date</th>' +
+      extraCols.map(h => `<th>${esc(h)}</th>`).join('');
   }
 
   $('leadsBody').innerHTML = slice.map(l => `
@@ -546,11 +547,11 @@ function renderLeads() {
       <td>${l.Email ? `<a href="mailto:${esc(l.Email)}">${esc(l.Email)}</a>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Phone) || '-'}</td>
       <td>${l.LinkedIn ? `<a href="${esc(normUrl(l.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
-      ${extraCols.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
       <td><span class="badge shiftb ${l.Shift === 'Day' ? 'dayb' : l.Shift === 'Night' ? 'nightb' : ''}">${esc(l.Shift)}</span></td>
       <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Category) || '-'}</td>
       <td class="cell-muted">${fmtDate(l.Date)}</td>
+      ${extraCols.map(h => `<td class="cell-muted lead-extra">${esc(l[h]) || '-'}</td>`).join('')}
     </tr>`).join('');
 
   $('leadsEmpty').classList.toggle('hidden', rows.length > 0);
