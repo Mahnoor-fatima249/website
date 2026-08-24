@@ -99,6 +99,18 @@ async function dailyAdd(d) {
   return entry;
 }
 
+async function dailyUpdate(id, patch) {
+  const db = load();
+  db.daily = db.daily || [];
+  const idx = db.daily.findIndex(x => String(x.id) === String(id));
+  if (idx === -1) throw new Error('Entry nahi mili');
+  const merged = { ...db.daily[idx], ...patch };
+  delete merged.AddedBy; /* malik nahi badalta */
+  db.daily[idx] = merged;
+  save(db);
+  return merged;
+}
+
 async function dailyDelete(id) {
   const db = load();
   db.daily = db.daily || [];
@@ -109,4 +121,4 @@ async function dailyDelete(id) {
   return true;
 }
 
-module.exports = { name: 'local', init: async () => false, listLeads, trackerList, trackerAdd, trackerUpdate, trackerDelete, dailyList, dailyAdd, dailyDelete };
+module.exports = { name: 'local', init: async () => false, listLeads, trackerList, trackerAdd, trackerUpdate, trackerDelete, dailyList, dailyAdd, dailyUpdate, dailyDelete };

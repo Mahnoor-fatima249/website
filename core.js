@@ -132,7 +132,7 @@ app.get('/api/meta', requireLogin, (req, res) => {
 
 /* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
    is se pata chalta hai ke live site naye code par hai ya purani */
-const BUILD_TAG = '2026-08-25.18';
+const BUILD_TAG = '2026-08-25.19';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 
@@ -539,6 +539,22 @@ app.post('/api/daily', requireLogin, async (req, res) => {
     data.AddedBy = req.session.user.name;
     const entry = await store.dailyAdd(data);
     res.json({ ok: true, entry });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/daily/:id', requireLogin, async (req, res) => {
+  try {
+    const list = await store.dailyList();
+    const entry = list.find(x => String(x.id) === String(req.params.id));
+    if (!entry) return res.status(404).json({ error: 'Entry not found' });
+    const ab = String(entry.AddedBy || '').trim().toLowerCase();
+    const me = String(req.session.user.name || '').trim().toLowerCase();
+    if (ab && ab !== me) return res.status(403).json({ error: 'Ye entry aapki nahi hai — sirf apni entries edit kar sakte hain' });
+    const data = dailyFields(req.body);
+    const updated = await store.dailyUpdate(req.params.id, { Date: data.Date, sent: data.sent, bounced: data.bounced, fuSent: data.fuSent, fuBounced: data.fuBounced, respAuto: data.respAuto, respGenuine: data.respGenuine, liOutreach: data.liOutreach, liResponses: data.liResponses });
+    res.json({ ok: true, entry: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

@@ -1004,7 +1004,7 @@ function renderDaily() {
       <td>${esc(e.AddedBy || '—')}</td>
       <td>${e.sent}</td><td>${e.bounced}</td><td>${e.fuSent}</td><td>${e.fuBounced}</td>
       <td>${e.respAuto}</td><td>${e.respGenuine}</td><td>${e.liOutreach}</td><td>${e.liResponses}</td>
-      <td>${mine ? `<button class="icon-btn del-btn" title="Delete" data-deldaily="${esc(e.id)}" data-deldate="${esc(e.Date)}">🗑</button>` : ''}</td>
+      <td>${mine ? `<button class="icon-btn" title="Edit" data-editdaily="${esc(e.id)}">✏️</button> <button class="icon-btn del-btn" title="Delete" data-deldaily="${esc(e.id)}" data-deldate="${esc(e.Date)}">🗑</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -1014,28 +1014,31 @@ if ($('dailyMonth') && $('dailyForm')) {
   $('dailyMonth').onchange = renderDaily;
   $('dailyRefresh').onclick = () => loadDaily();
 
+  const DAILY_INPUT_MAP = { sent: 'dlSent', bounced: 'dlBounced', fuSent: 'dlFuSent', fuBounced: 'dlFuBounced', respAuto: 'dlRespAuto', respGenuine: 'dlRespGen', liOutreach: 'dlLiOut', liResponses: 'dlLiResp' };
+  const dailyBodyVals = () => {
+    const body = { date: $('dlDate').value };
+    for (const [k, id] of Object.entries(DAILY_INPUT_MAP)) body[k] = $(id).value;
+    return body;
+  };
+  const clearEditState = () => {
+    state.editingDailyId = null;
+    Object.values(DAILY_INPUT_MAP).forEach(id => { $(id).value = ''; });
+    const msg = $('dailyMsg');
+    msg.innerHTML = '';
+  };
+
   $('dailyForm').onsubmit = async ev => {
     ev.preventDefault();
     const msg = $('dailyMsg');
     try {
-      await api('/api/daily', {
-        method: 'POST',
-        body: {
-          date: $('dlDate').value,
-          sent: $('dlSent').value,
-          bounced: $('dlBounced').value,
-          fuSent: $('dlFuSent').value,
-          fuBounced: $('dlFuBounced').value,
-          respAuto: $('dlRespAuto').value,
-          respGenuine: $('dlRespGen').value,
-          liOutreach: $('dlLiOut').value,
-          liResponses: $('dlLiResp').value
-        }
-      });
-      toast('Daily entry save ho gayi ✓', 'ok');
-      msg.textContent = '';
-      ['dlSent', 'dlBounced', 'dlFuSent', 'dlFuBounced', 'dlRespAuto', 'dlRespGen', 'dlLiOut', 'dlLiResp']
-        .forEach(id => { $(id).value = ''; });
+      if (state.editingDailyId) {
+        await api(`/api/daily/${state.editingDailyId}`, { method: 'PUT', body: dailyBodyVals() });
+        toast('Entry update ho gayi ✓', 'ok');
+      } else {
+        await api('/api/daily', { method: 'POST', body: dailyBodyVals() });
+        toast('Daily entry save ho gayi ✓', 'ok');
+      }
+      clearEditState();
       loadDaily(true);
     } catch (err) {
       msg.style.color = 'var(--bad)';
@@ -1044,11 +1047,26 @@ if ($('dailyMonth') && $('dailyForm')) {
   };
 
   $('dailyBody').addEventListener('click', ev => {
+    const editBtn = ev.target.closest('[data-editdaily]');
+    if (editBtn) {
+      const entry = (state.dailyEntries || []).find(x => String(x.id) === String(editBtn.dataset.editdaily));
+      if (!entry) return;
+      state.editingDailyId = entry.id;
+      $('dlDate').value = String(entry.Date || '').slice(0, 10);
+      for (const [k, id] of Object.entries(DAILY_INPUT_MAP)) $(id).value = Number(entry[k]) || 0;
+      const msg = $('dailyMsg');
+      msg.style.color = 'var(--brand-strong)';
+      msg.innerHTML = `Entry #${esc(entry.id)} (${esc(entry.Date)}) edit ho rahi hai — <a href="#" id="cancelEdit" style="color:var(--bad)">Cancel</a>`;
+      $('cancelEdit').onclick = e2 => { e2.preventDefault(); clearEditState(); };
+      $('dailyForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const btn = ev.target.closest('[data-deldaily]');
     if (!btn) return;
     askConfirm(`Ye ${btn.dataset.deldate} ki entry delete kar dein?`, async () => {
       try {
         await api(`/api/daily/${btn.dataset.deldaily}`, { method: 'DELETE' });
+        if (state.editingDailyId === btn.dataset.deldaily) clearEditState();
         toast('Entry delete ho gayi', 'ok');
         loadDaily(true);
       } catch (err) {

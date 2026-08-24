@@ -527,6 +527,26 @@ async function dailyAdd(dataIn) {
   return dRowToEntry(row);
 }
 
+async function dailyUpdate(id, patch) {
+  const rowNumber = parseInt(id, 10);
+  if (!Number.isFinite(rowNumber) || rowNumber < 2) throw new Error('Invalid row');
+
+  const data = [];
+  if (patch.Date) data.push({ range: `${DAILY_TAB}!B${rowNumber}`, values: [[String(patch.Date)]] });
+  const cols = { sent: 4, bounced: 5, fuSent: 6, fuBounced: 7, respAuto: 8, respGenuine: 9, liOutreach: 10, liResponses: 11 };
+  for (const [k, col] of Object.entries(cols)) {
+    if (patch[k] !== undefined) data.push({ range: `${DAILY_TAB}!${colLetter(col - 1)}${rowNumber}`, values: [[patch[k] || 0]] });
+  }
+  if (!data.length) throw new Error('Nothing to update');
+
+  await client.spreadsheets.values.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: { valueInputOption: 'RAW', data }
+  });
+  clearDailyCache();
+  return { id: String(rowNumber), ...patch };
+}
+
 async function dailyDelete(id) {
   const rowNumber = parseInt(id, 10);
   if (!Number.isFinite(rowNumber) || rowNumber < 2) throw new Error('Invalid row');
@@ -615,5 +635,6 @@ module.exports = {
   trackerDelete,
   dailyList,
   dailyAdd,
+  dailyUpdate,
   dailyDelete
 };

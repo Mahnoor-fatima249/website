@@ -36,5 +36,6 @@ module.exports = {
   trackerDelete: (...a) => backend.trackerDelete(...a),
   dailyList: (...a) => backend.dailyList ? backend.dailyList(...a) : [],
   dailyAdd: (...a) => backend.dailyAdd(...a),
+  dailyUpdate: (...a) => backend.dailyUpdate ? backend.dailyUpdate(...a) : (() => { throw new Error('Not supported'); })(),
   dailyDelete: (...a) => backend.dailyDelete(...a)
 };
