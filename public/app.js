@@ -620,7 +620,7 @@ function renderTrackTable() {
       <td><span class="badge ${t.Emailed === 'Yes' ? 'yes' : 'no'} toggle" data-field="Emailed">${t.Emailed === 'Yes' ? 'Sent ✓' : 'Not sent'}</span></td>
       <td><span class="badge ${t['Connection Sent'] === 'Yes' ? 'yes' : 'no'} toggle" data-field="Connection Sent">${t['Connection Sent'] === 'Yes' ? 'Sent ✓' : 'Not yet'}</span></td>
       <td><span class="badge ${t.Accepted === 'Yes' ? 'yes' : 'no'} toggle" data-field="Accepted">${t.Accepted === 'Yes' ? 'Accepted ✓' : 'Pending'}</span></td>
-      <td class="cell-muted" style="max-width:220px">${esc(t.Notes)}</td>
+      <td>${t.Notes ? `<div class="note-box">📝 ${esc(t.Notes)}</div>` : '<span class="cell-muted">-</span>'}</td>
       <td>${esc(t['Added By'])}</td>
       <td class="cell-muted">${fmtDate(t.Date)}</td>
       <td><div class="row-actions">

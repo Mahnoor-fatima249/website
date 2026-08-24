@@ -287,6 +287,21 @@ td a { color: var(--brand-link); text-decoration: none; font-weight: 600; word-b
 td a:hover { text-decoration: underline; }
 /* Sheet ke dynamically added columns — lamba text truncate ho jaye */
 .lead-extra { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* LinkedIn tracker ke Notes — chhota sa note-box jaisa */
+.note-box {
+  display: inline-block;
+  max-width: 260px;
+  background: var(--brand-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--brand);
+  border-radius: 10px;
+  padding: 7px 11px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 .cell-muted { color: var(--muted); }
 .row-actions { display: flex; gap: 6px; }
 .mini-btn { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink); font-family: inherit; }
