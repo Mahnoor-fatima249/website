@@ -34,6 +34,16 @@ function fmtDate(d) {
   return dt.toLocaleDateString();
 }
 
+/* Status text ke hisab se badge ka rang: green=ho gaya, orange=pending, red=problem */
+function statusClass(s) {
+  const v = String(s || '').trim().toLowerCase();
+  if (!v) return '';
+  if (/bounce|fail|undeliver|invalid|error/.test(v)) return 'st-bad';
+  if (/\bnot\b|pending|wait|queue|todo|no response/.test(v)) return 'st-pend';
+  if (/sent|replied|done|complete|accepted|confirm/.test(v)) return 'st-sent';
+  return 'statb';
+}
+
 function markSync() {
   $('lastSync').textContent = 'Updated ' + new Date().toLocaleTimeString();
 }
@@ -536,7 +546,7 @@ function renderLeads() {
       ${prio.map(h => `<td class="cell-muted lead-extra" title="${esc(l[h])}">${esc(l[h]) || '-'}</td>`).join('')}
       <td>${l.LinkedIn ? `<a href="${esc(normUrl(l.LinkedIn))}" target="_blank" rel="noopener">Profile</a>` : '<span class="cell-muted">-</span>'}</td>
       <td><span class="badge shiftb ${l.Shift === 'Day' ? 'dayb' : l.Shift === 'Night' ? 'nightb' : ''}">${esc(l.Shift)}</span></td>
-      <td>${l.Status ? `<span class="badge statb">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
+      <td>${l.Status ? `<span class="badge ${statusClass(l.Status)}">${esc(l.Status)}</span>` : '<span class="cell-muted">-</span>'}</td>
       <td class="cell-muted">${esc(l.Category) || '-'}</td>
       <td class="cell-muted">${fmtDate(l.Date)}</td>
       <td class="no-print"><div class="row-actions">
@@ -622,10 +632,32 @@ async function loadTracker(silent) {
     state.tracker = r.entries || [];
     renderTrackStats();
     renderTrackTable();
+    renderPendingAlerts();
     markSync();
   } catch (err) {
     if (!silent) toast(err.message, 'err');
   }
+}
+
+/* Overview card: tracker entries jinki email abhi tak nahi bheji */
+function renderPendingAlerts() {
+  const card = $('pendCard');
+  if (!card) return;
+  const pend = state.tracker
+    .filter(t => t.Emailed !== 'Yes')
+    .sort((a, b) => String(a.Date || '').localeCompare(String(b.Date || '')));
+  card.classList.toggle('hidden', state.tracker.length === 0);
+  $('pendList').innerHTML = !pend.length
+    ? '<span class="ok-text" style="font-size:14px">✔ Shabash! Sab entries par email ho chuki hai.</span>'
+    : `<div class="pend-count">${pend.length} lead${pend.length === 1 ? '' : 's'} pending</div>` +
+      '<div class="pend-grid">' +
+      pend.slice(0, 8).map(t => `
+        <div class="pend-item">
+          <div class="pend-name">${esc(t.Name || '(no name)')}</div>
+          <div class="cell-muted pend-sub">${fmtDate(t.Date)} • ${esc(t['Added By'] || '?')}</div>
+        </div>`).join('') +
+      '</div>' +
+      (pend.length > 8 ? `<div class="cell-muted" style="margin-top:8px;font-size:12px">+${pend.length - 8} aur…</div>` : '');
 }
 
 function scopedTracker() {

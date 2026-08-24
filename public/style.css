@@ -287,6 +287,28 @@ td a { color: var(--brand-link); text-decoration: none; font-weight: 600; word-b
 td a:hover { text-decoration: underline; }
 /* Sheet ke dynamically added columns — lamba text truncate ho jaye */
 .lead-extra { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Status ke rang: green = ho gaya, orange = pending, red = masla */
+.badge.st-sent { background: rgba(16, 185, 129, .16); color: #10b981; cursor: default; }
+.badge.st-pend { background: var(--warn-soft); color: var(--warn); cursor: default; }
+.badge.st-bad { background: rgba(190, 18, 60, .16); color: #fb7185; cursor: default; }
+
+/* Business name column horizontal scroll me saath chipakta rehta hai */
+.leads-table th:nth-child(2), .leads-table td:nth-child(2) {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--card);
+  box-shadow: inset -1px 0 0 var(--line);
+  min-width: 170px;
+}
+.leads-table thead th:nth-child(2) { z-index: 3; }
+.leads-table tbody tr:hover td:nth-child(2) { background: var(--hover); }
+
+/* Overview follow-up pending card */
+.pend-count { font-size: 13px; font-weight: 700; color: var(--warn); margin-bottom: 10px; }
+.pend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.pend-item { background: var(--card-soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.pend-name { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pend-sub { font-size: 11.5px; margin-top: 2px; }
 /* LinkedIn tracker ke Notes — chaura flat note-box (lamba/tall nahi) */
 .note-box {
   display: inline-block;
