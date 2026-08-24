@@ -617,7 +617,13 @@ function renderTrackTable() {
       </div></td>
     </tr>`).join('');
 
-  $('trackEmpty').classList.toggle('hidden', rows.length > 0);
+  const emptyEl = $('trackEmpty');
+  emptyEl.classList.toggle('hidden', rows.length > 0);
+  if (!rows.length) {
+    emptyEl.innerHTML = (state.trackMineOnly && state.tracker.length)
+      ? '<b>Aapke is username ki koi entry nahi mili</b><p>Shayad entries kisi doosre account se banayi gayi thin. Neeche <b>"Sab Dikhao"</b> button dabayen — ya usi username se login karein jis se entries save ki thin.</p>'
+      : '<b>No entries yet</b><p>Click "+ Add LinkedIn Lead" to start tracking.</p>';
+  }
 }
 
 $('trackSearch').addEventListener('input', renderTrackTable);
