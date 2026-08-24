@@ -220,7 +220,8 @@ const VIEWS = {
   overview: { nav: 'navOverview', sec: 'overviewView' },
   leads: { nav: 'navLeads', sec: 'leadsView' },
   linkedin: { nav: 'navLinkedin', sec: 'linkedinView' },
-  report: { nav: 'navReport', sec: 'reportView' }
+  report: { nav: 'navReport', sec: 'reportView' },
+  help: { nav: 'navHelp', sec: 'helpView' }
 };
 
 Object.entries(VIEWS).forEach(([name, v]) => {

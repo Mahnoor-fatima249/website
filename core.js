@@ -66,12 +66,47 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+/* ---------- LOGIN PROTECTION: 5 ghalat attempts par 10 min lock ---------- */
+const loginAttempts = new Map();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 10 * 60 * 1000;
+
+function guardLogin(req) {
+  /* purani entries ka safaya */
+  if (loginAttempts.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of loginAttempts) if (!v.until || v.until < now) loginAttempts.delete(k);
+  }
+  const key = `${String((req.body && req.body.username) || '').trim().toLowerCase()}|${req.ip || 'unknown'}`;
+  const rec = loginAttempts.get(key);
+  if (rec && rec.until && rec.until > Date.now()) {
+    const mins = Math.ceil((rec.until - Date.now()) / 60000);
+    const err = new Error(`Bahut zyada ghalat koshishen — ${mins} minute baad dobara koshish karein`);
+    err.status = 429;
+    throw err;
+  }
+  return { key, count: rec ? rec.count : 0 };
+}
+
 app.post('/api/login', async (req, res) => {
+  let info;
+  try {
+    info = guardLogin(req);
+  } catch (err) {
+    return res.status(err.status || 429).json({ error: err.message });
+  }
   try {
     const user = await users.login(req.body.username, req.body.password);
+    loginAttempts.delete(info.key);
     req.session.user = { name: user.username };
     res.json({ ok: true, user: req.session.user });
   } catch (err) {
+    info.count++;
+    if (info.count >= MAX_LOGIN_ATTEMPTS) {
+      loginAttempts.set(info.key, { count: 0, until: Date.now() + LOGIN_LOCK_MS });
+    } else {
+      loginAttempts.set(info.key, { count: info.count });
+    }
     res.status(401).json({ error: err.message });
   }
 });
@@ -97,7 +132,7 @@ app.get('/api/meta', requireLogin, (req, res) => {
 
 /* Har deploy par ye tag badalta hai — website ke corner me dikh jata hai,
    is se pata chalta hai ke live site naye code par hai ya purani */
-const BUILD_TAG = '2026-08-25.13';
+const BUILD_TAG = '2026-08-25.14';
 
 /* ---------- SCRAPED LEADS (READ-ONLY) ---------- */
 
